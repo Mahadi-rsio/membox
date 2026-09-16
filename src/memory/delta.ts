@@ -3,6 +3,7 @@ import type { Database } from "../db";
 import { info, debug } from "../log";
 import { messages as messagesTable } from "../db/schema/messages";
 import { type NormalizedMessage, normalizeMessages } from "./ids";
+import { estimateMessagesTokens } from "../context/tokens";
 
 export interface DeltaResult {
   userId: string;
@@ -57,6 +58,8 @@ export async function detectDelta(
     total: normalized.length,
     new: newMessages.length,
     duplicates: duplicates.length,
+    newTokens: estimateMessagesTokens(newMessages),
+    oldOrDuplicateTokens: estimateMessagesTokens(duplicates),
   });
   debug("delta", "new message keys", {
     keys: newMessages.map((m) => m.messageKey),

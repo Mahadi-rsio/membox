@@ -7,7 +7,7 @@ import {
   selectItemsForBudget,
   type SelectableItem,
 } from "./selector";
-import { estimateMessagesTokens } from "./tokens";
+import { estimateMessagesTokens, estimateTokens } from "./tokens";
 import { compressToolMessage } from "../memory/compressor";
 import { normalizeMessage } from "../memory/ids";
 import {
@@ -94,6 +94,14 @@ export async function compileContext(
         break;
       }
     }
+    const inputTokensBeforeRetrieval = estimateMessagesTokens(messages);
+    info("compiler", "user message received", {
+      userId: userId ?? null,
+      latestUserMessage: latestUserText.slice(0, 500),
+      latestUserMessageTokens: estimateTokens(latestUserText),
+      messagesIn: messages.length,
+      messagesInTokens: inputTokensBeforeRetrieval,
+    });
     const queryKeywords = extractKeywords(latestUserText);
     // Prefer longer / rarer terms so long questions don't drop "neon"/"database"
     // when the first 6 tokens are filler verbs.
@@ -292,11 +300,15 @@ export async function compileContext(
     }
 
     const selected = selectItemsForBudget(candidates, targetBudget);
+    const selectedMessageCount = selected.filter((s) => s.kind === "message").length;
+    const selectedCanonicalCount = selected.filter((s) => s.kind === "canonical_memory").length;
     info("compiler", "items selected within context budget", {
       userId: userId ?? null,
       candidates: candidates.length,
       selected: selected.length,
-      canonicalSelected: selected.filter((s) => s.kind === "canonical_memory").length,
+      selectedMessages: selectedMessageCount,
+      selectedCanonical: selectedCanonicalCount,
+      canonicalSelected: selectedCanonicalCount,
       budget: targetBudget,
     });
 
@@ -332,7 +344,13 @@ export async function compileContext(
       userId: userId ?? null,
       messagesIn: messages.length,
       messagesOut: compiledMessages.length,
+      messagesInTokens: inputTokensBeforeRetrieval,
       totalTokens: finalTokens,
+      tokenDelta: finalTokens - inputTokensBeforeRetrieval,
+      tokenReductionPct:
+        inputTokensBeforeRetrieval > 0
+          ? Math.round(((inputTokensBeforeRetrieval - finalTokens) / inputTokensBeforeRetrieval) * 100)
+          : 0,
       canonicalItemsUsed: canonicalUsed,
       shortTermItemsUsed,
       selectedCount: selected.length,

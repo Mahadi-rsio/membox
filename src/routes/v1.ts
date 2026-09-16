@@ -10,7 +10,7 @@ import { compileContext } from "../context/compiler";
 import { checkAuth, type AuthUser } from "./auth";
 import { checkRateLimit } from "./rate-limit";
 import type { ExtractionFallbackOptions } from "../memory/extractor";
-import { warn } from "../log";
+import { warn, info } from "../log";
 
 export const v1Router = new Hono<HonoContext>();
 
@@ -30,7 +30,17 @@ function logUpstreamError(path: string, statusCode: number, content: Uint8Array 
 
 function getGroqFallback(c: any): ExtractionFallbackOptions | null {
   const apiKey = c.env.GROQ_API_KEY;
-  if (!apiKey) return null;
+  if (!apiKey) {
+    info("groq", "connection NOT CONFIGURED (no GROQ_API_KEY); memory extraction is local-only", {
+      baseUrl: c.env.GROQ_BASE_URL,
+      model: c.env.GROQ_EXTRACTION_MODEL,
+    });
+    return null;
+  }
+  info("groq", "connection CONFIGURED (key present)", {
+    baseUrl: c.env.GROQ_BASE_URL,
+    model: c.env.GROQ_EXTRACTION_MODEL,
+  });
   return {
     groqApiKey: apiKey,
     groqBaseUrl: c.env.GROQ_BASE_URL,
