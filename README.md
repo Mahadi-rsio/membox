@@ -3,6 +3,10 @@
 An OpenAI-compatible proxy that gives any client persistent memory. Clients only change
 their `base_url` — no SDKs, no MCP, no custom tools.
 
+> **MCP support:** an MCP layer is also available for session-aware clients that want
+> explicit memory tools. See [`mcp.md`](./mcp.md) for architecture, tools, and the
+> programmatic `processMessage` API.
+
 ```
 Client ──▶ Gateway ──▶ Main AI (answers)
               │

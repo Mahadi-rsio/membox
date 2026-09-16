@@ -6,6 +6,8 @@ import type { HonoContext } from "./env";
 import { configureLogLevel } from "./log";
 import { healthRouter } from "./routes/health";
 import { v1Router } from "./routes/v1";
+import { memoryRouter } from "./routes/memory";
+import { handleMcpRequest, defaultMcpDeps } from "./mcp/server";
 
 const app = new Hono<HonoContext>();
 
@@ -24,6 +26,19 @@ app.route("/v1", healthRouter);
 
 // V1 OpenAI-compatible routes
 app.route("/v1", v1Router);
+
+// V1 memory routes (MCP → Gateway every-message path)
+app.route("/v1", memoryRouter);
+
+// MCP endpoint (Streamable HTTP transport)
+app.all("/mcp", async (c) => {
+  const deps = defaultMcpDeps(c.env);
+  return handleMcpRequest(c, deps);
+});
+app.all("/mcp/*", async (c) => {
+  const deps = defaultMcpDeps(c.env);
+  return handleMcpRequest(c, deps);
+});
 
 // Root route
 app.get("/", (c) => {

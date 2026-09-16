@@ -15,6 +15,9 @@ export interface Env {
   // Gateway Auth (Optional)
   GATEWAY_API_KEY?: string;
 
+  // Gateway URL (used by the MCP layer / GatewayClient to reach the gateway)
+  GATEWAY_URL?: string;
+
   // Context Compiler Budget
   CONTEXT_BUDGET?: string | number;
 

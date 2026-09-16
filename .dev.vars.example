@@ -13,6 +13,10 @@ UPSTREAM_API_KEY=your-openai-api-key
 # Gateway Auth (optional; client → gateway bearer token)
 # GATEWAY_API_KEY=your-gateway-api-key
 
+# Gateway URL (used by the MCP layer / GatewayClient to reach the gateway;
+# defaults to http://localhost:8787 when unset)
+# GATEWAY_URL=http://localhost:8787
+
 # Upstash Redis (optional — cache + rate limiting)
 # UPSTASH_REDIS_REST_URL=https://your-upstash-redis.upstash.io
 # UPSTASH_REDIS_REST_TOKEN=your-upstash-token
