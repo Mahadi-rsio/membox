@@ -14,7 +14,20 @@ import {
   searchMemory,
 } from "../memory/memory-ops";
 import { checkAuth } from "./auth";
-import type { GatewayMemory } from "../mcp/types";
+export interface GatewayMemory {
+  entity?: string | null;
+  attribute?: string | null;
+  value?: string | null;
+  content?: string;
+  type?: string;
+  scope?: string;
+  status?: string;
+  confidence?: number;
+  importance?: number;
+  stability?: number;
+  topicKey?: string;
+  id?: number;
+}
 import { info, warn } from "../log";
 
 export const memoryRouter = new Hono<HonoContext>();
