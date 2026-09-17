@@ -19,9 +19,30 @@ before reaching the main AI. The main AI always generates the answer; responses 
 returned **unchanged** (streaming and non-streaming). The gateway optimizes what goes
 *in*, never what comes *out*.
 
-**Stack:** TypeScript · Cloudflare Workers · Hono · Drizzle ORM · Neon (PostgreSQL) · Upstash Redis (optional)
+**Stack:** TypeScript · Cloudflare Workers · Hono · Drizzle ORM · Neon (PostgreSQL) · Upstash Redis (optional) · React + Vite (built-in chat UI)
 
 ---
+
+## Built-in chat UI
+
+The Worker also serves a React + shadcn chat UI (built from [`web/`](./web/)) and a
+`POST /api/chat` endpoint, all on the same port. No separate server needed.
+
+- The UI sends **only the latest user message** to `/api/chat` — never the conversation
+  history.
+- The endpoint forwards that single message to the gateway's `/v1/chat/completions`,
+  which runs the memory pipeline and compiles relevant context server-side.
+- Answers stream back into the UI.
+
+```bash
+cd web && bun install && bun run build     # build the UI into web/dist
+bun run dev                                # → http://localhost:8787 (UI + gateway)
+```
+
+Open **http://localhost:8787** to chat. The UI lives at `web/` and is bundled into
+`web/dist`, which `wrangler.jsonc` serves as static assets with SPA fallback.
+
+
 
 ## Install & Run
 

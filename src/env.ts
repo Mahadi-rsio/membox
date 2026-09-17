@@ -18,6 +18,9 @@ export interface Env {
   // Gateway URL (used by the MCP layer / GatewayClient to reach the gateway)
   GATEWAY_URL?: string;
 
+  // Model name to use for the web chat endpoint
+  LIVE_MODEL?: string;
+
   // Context Compiler Budget
   CONTEXT_BUDGET?: string | number;
 
