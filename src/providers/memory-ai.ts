@@ -5,9 +5,9 @@ import type {
   MemoryAICandidate,
   MemoryAIOutput,
   ToolSummaryOutput,
-} from "../models/memory";
-import type { Env } from "../env";
-import type { MemoryItem } from "../db/schema/memory";
+} from "../models/memory.js";
+import type { Env } from "../env.js";
+import type { MemoryItem } from "../db/schema/memory.js";
 
 const JSON_BLOCK_RE = /```(?:json)?\s*(?<json>\{[\s\S]*\}|\[[\s\S]*\])\s*```/;
 

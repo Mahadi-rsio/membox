@@ -8,11 +8,11 @@ The Memory Gateway is a **stateful context transformation layer**, not a chatbot
 
 | Component | Technology |
 |-----------|-----------|
-| Runtime | Cloudflare Workers |
-| Framework | Hono |
-| Database | Neon (PostgreSQL) |
+| Runtime | Node.js |
+| Framework | Express |
+| Database | PostgreSQL (self-hosted, optionally via PgBouncer) |
 | ORM | Drizzle ORM |
-| Cache | Upstash Redis (optional) |
+| Cache | Redis (self-hosted, optional) |
 | Language | TypeScript |
 
 ## High-Level Data Flow
@@ -21,7 +21,7 @@ The Memory Gateway is a **stateful context transformation layer**, not a chatbot
 OpenCode / Codex / AI Client
             │
             ▼
-      Memory Gateway (Cloudflare Workers / Hono)
+      Memory Gateway (Node.js / Express)
             │
      ┌──────┴─────────┐
      │                │
@@ -69,28 +69,31 @@ Preferred critical path — keep it lightweight:
 1. Receive OpenAI-compatible request
 2. Authenticate / isolate conversation (`X-Conversation-Id` header or fingerprint)
 3. Identify **delta** vs already-processed messages
-4. Persist raw messages to Neon archive (via `waitUntil` — non-blocking)
+4. Persist raw messages to PostgreSQL archive (fire-and-forget background task — non-blocking)
 5. Load current versioned canonical memory
 6. Deterministic memory processing
 7. Call Memory AI **only when necessary**
 8. Compile optimized context under token budget
 9. Forward to main upstream API
 10. Proxy response (stream or non-stream) **unchanged**
-11. Record assistant output for memory (post-complete / async via `waitUntil`)
+11. Record assistant output for memory (post-complete / async background task)
 
-Expensive work (embeddings, deep consolidation, archival indexing, memory repair, long-term summarization) uses Cloudflare's `waitUntil` and must not block token delivery.
+Expensive work (embeddings, deep consolidation, archival indexing, memory repair, long-term summarization) runs as background tasks and must not block token delivery.
 
 ## Component Map
 
 ```
 src/
-├── index.ts              # Hono app entry, middleware
-├── env.ts                # Env bindings interface (Neon, Upstash, vars)
+├── index.ts              # Express app entry (createApp factory + listener)
+├── env.ts                # Env interface + getEnv() from process.env
+├── http.ts               # Express Request/Response helpers
 ├── routes/
 │   ├── v1.ts             # OpenAI-compatible HTTP routes
+│   ├── chat.ts           # Built-in chat endpoint
+│   ├── memory.ts         # Memory management endpoints
 │   ├── health.ts         # Health check routes
 │   ├── auth.ts           # Gateway API key auth middleware
-│   └── rate-limit.ts     # Upstash Ratelimit middleware
+│   └── rate-limit.ts     # Redis-backed sliding-window rate limit middleware
 ├── providers/
 │   ├── openai-compatible.ts  # Main upstream adapter
 │   └── memory-ai.ts          # Optional Memory AI adapter
@@ -118,13 +121,14 @@ src/
 ├── storage/
 │   └── archive.ts        # Raw message archive writer
 ├── retrieval/            # Retriever interface + PostgreSQL backend
-├── cache/                # Version-aware cache (Upstash Redis optional)
+├── cache/                # Version-aware cache (self-hosted Redis optional)
 ├── models/               # Zod schemas + TypeScript types
-└── db/                   # Drizzle ORM setup + Neon client
+└── db/                   # Drizzle ORM setup + pg client (PostgreSQL)
 
 drizzle/                  # Generated SQL migrations
+scripts/migrate.ts        # Apply migrations to PostgreSQL (manual)
+scripts/automigrate.ts    # Auto-apply migrations on server boot
 tests/                    # Bun test suite
-wrangler.jsonc            # Cloudflare Workers config
 ```
 
 ### API layer
@@ -191,7 +195,7 @@ Combines, under `CONTEXT_BUDGET`:
 
 Selection score ≈ `value / token_cost`, where value includes relevance, confidence, importance, freshness, stability, and information gain. No naive truncation.
 
-### Storage (Neon / PostgreSQL)
+### Storage (PostgreSQL)
 
 Three memory layers:
 
@@ -201,10 +205,14 @@ Three memory layers:
 
 Every canonical update creates a new **context version** (`conversation_id`, `version`, `state`, `created_at`, `source_message_ids`). Never destructively mutate the only copy.
 
-Schema managed by **Drizzle ORM**; migrations in `drizzle/`. Apply with:
+Schema managed by **Drizzle ORM**; migrations in `drizzle/`. Migrations apply manually with:
 ```bash
 bun run db:migrate   # applies to DATABASE_URL
 ```
+or **automatically on server boot** (`AUTO_MIGRATE=true`, the default) via
+`scripts/automigrate.ts`. When `DATABASE_URL` points at PgBouncer (transaction
+pooling), point `MIGRATION_DATABASE_URL` at a direct Postgres endpoint so the
+DDL migrations work.
 
 ### Retrieval
 
@@ -220,7 +228,7 @@ interface Retriever {
 
 ### Cache
 
-Optional Upstash Redis; Neon sufficient for v1.
+Optional self-hosted Redis; PostgreSQL sufficient for v1.
 
 Layers: request, memory extraction, context compilation, retrieval.
 
@@ -294,22 +302,22 @@ When consolidating clusters, Memory AI (or the deterministic consolidator) retur
 |---------|----------|
 | Memory AI down / bad JSON | Previous canonical memory + recent messages |
 | DB / retrieval error | Best-effort recent messages → still call main AI |
-| Upstash Redis miss | Skip cache; continue |
-| `waitUntil` task failure | Silently discarded; main response already sent |
+| Redis miss | Skip cache; continue |
+| Background task failure | Silently discarded; main response already sent |
 
 Main upstream should remain usable whenever possible.
 
 ## Streaming
 
-For `"stream": true`, proxy upstream SSE chunks directly via `Response` with streaming body. Do not buffer. Memory extraction runs after completion via `waitUntil`. Never delay tokens for background memory work.
+For `"stream": true`, proxy upstream SSE chunks directly via a streaming body. Do not buffer. Memory extraction runs after completion via a background task. Never delay tokens for background memory work.
 
 ## Security Boundaries
 
 - API authentication via `GATEWAY_API_KEY` bearer token
 - Per-user / conversation isolation (`X-Conversation-Id` or fingerprint)
 - Request size limits (`MAX_REQUEST_BYTES`)
-- Rate limiting via Upstash Ratelimit
-- Secret redaction; no API-key logging; upstream keys never in Neon archive
+- Rate limiting via self-hosted Redis (sliding window)
+- Secret redaction; no API-key logging; upstream keys never in PostgreSQL archive
 - Configurable retention
 
 ## Configuration Surface
@@ -320,15 +328,17 @@ For `"stream": true`, proxy upstream SSE chunks directly via `Response` with str
 | `MEMORY_AI_ENABLED` / `MEMORY_AI_*` | Optional Memory AI compressor |
 | `CONTEXT_BUDGET` | Token budget for compiled context |
 | `GATEWAY_API_KEY` | Optional client→gateway bearer auth |
-| `UPSTASH_REDIS_REST_URL` / `_TOKEN` | Optional Redis cache + rate limiting |
-| `DATABASE_URL` | Persistence (Neon / PostgreSQL) |
+| `REDIS_URL` | Optional Redis cache + rate limiting |
+| `DATABASE_URL` | Persistence (PostgreSQL, direct or via PgBouncer) |
+| `MIGRATION_DATABASE_URL` | Direct Postgres for auto-migrations (defaults to `DATABASE_URL`) |
+| `AUTO_MIGRATE` | Apply migrations on boot (default `true`) |
 
 ## What This Is Not
 
 - Not a RAG-first embedding → top-k → LLM loop for every turn
 - Not a replacement for the main reasoning model
 - Not a client-visible memory chatbot API (transparency is the product)
-- Not a Docker/server app (Cloudflare Workers edge runtime)
+- Not limited to a single host — a plain Node.js/Express service that also ships a Docker Compose stack (PostgreSQL + PgBouncer + Redis + gateway)
 
 ## Design Invariant
 

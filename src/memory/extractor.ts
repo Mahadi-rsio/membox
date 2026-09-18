@@ -4,11 +4,11 @@ import {
   type StructuredFact,
   type Correction,
   type Revocation,
-} from "../models/memory";
-import { type NormalizedMessage } from "./ids";
-import { isInterrogative } from "./interrogative";
-import { isLowInfoMessage } from "./low-info";
-import { info, debug } from "../log";
+} from "../models/memory.js";
+import { type NormalizedMessage } from "./ids.js";
+import { isInterrogative } from "./interrogative.js";
+import { isLowInfoMessage } from "./low-info.js";
+import { info, debug } from "../log.js";
 import {
   detectPreferenceDomain,
   extractStructuredFacts,
@@ -20,14 +20,14 @@ import {
   structuredFactToContent,
   structuredFactToTopicKey,
   INVALID_KEYS,
-} from "./facts";
-import { parseCorrection, stripCorrectionPrefix } from "./correction";
-import { parseRevocation } from "./revocation";
+} from "./facts.js";
+import { parseCorrection, stripCorrectionPrefix } from "./correction.js";
+import { parseRevocation } from "./revocation.js";
 import {
   looksLikeCorrection,
   looksSpeculative,
   scoreCandidate,
-} from "./scorer";
+} from "./scorer.js";
 
 const PREFIX_RE =
   /^\s*(?:\[(?<bracket>[a-z_ ]+)\]|(?<label>[a-z_ ]+)\s*:)\s*(?<body>.+)$/is;

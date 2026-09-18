@@ -1,0 +1,91 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: remember-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-remember}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-remember}
+      POSTGRES_DB: ${POSTGRES_DB:-remember}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-remember} -d ${POSTGRES_DB:-remember}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "5432:5432"
+
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    container_name: remember-pgbouncer
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_USER: ${POSTGRES_USER:-remember}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-remember}
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: ${POSTGRES_DB:-remember}
+      POOL_MODE: transaction
+      AUTH_TYPE: scram-sha-256
+      MAX_CLIENT_CONN: "100"
+      DEFAULT_POOL_SIZE: "20"
+    ports:
+      - "6432:5432"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "localhost", "-p", "5432"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: remember-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    ports:
+      - "6379:6379"
+
+  gateway:
+    build: .
+    container_name: remember-gateway
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      pgbouncer:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      # Runtime traffic goes through PgBouncer transaction pooling.
+      DATABASE_URL: postgresql://${POSTGRES_USER:-remember}:${POSTGRES_PASSWORD:-remember}@pgbouncer:5432/${POSTGRES_DB:-remember}
+      # Migrations run DDL on boot and must go DIRECTLY to Postgres.
+      MIGRATION_DATABASE_URL: postgresql://${POSTGRES_USER:-remember}:${POSTGRES_PASSWORD:-remember}@postgres:5432/${POSTGRES_DB:-remember}
+      REDIS_URL: redis://redis:6379
+      UPSTREAM_PROVIDER: ${UPSTREAM_PROVIDER:-openai}
+      UPSTREAM_BASE_URL: ${UPSTREAM_BASE_URL:-https://api.openai.com/v1}
+      UPSTREAM_API_KEY: ${UPSTREAM_API_KEY:-}
+      GATEWAY_API_KEY: ${GATEWAY_API_KEY:-}
+      MEMORY_AI_ENABLED: ${MEMORY_AI_ENABLED:-false}
+      CONTEXT_BUDGET: ${CONTEXT_BUDGET:-8000}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      HOST: 0.0.0.0
+      PORT: 8787
+    ports:
+      - "8787:8787"
+
+volumes:
+  postgres-data:
+  redis-data:

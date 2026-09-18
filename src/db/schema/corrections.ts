@@ -1,6 +1,6 @@
 import { pgTable, varchar, text, timestamp, serial, index } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
-import { users } from "./users";
+import { users } from "./users.js";
 
 export const corrections = pgTable(
   "corrections",

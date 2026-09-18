@@ -14,8 +14,8 @@
  * one row, i.e. no concurrent writer modified the item in the meantime.
  */
 import { eq, and } from "drizzle-orm";
-import type { Database } from "../db";
-import { memoryItems, type MemoryItem } from "../db/schema/memory";
+import type { Database } from "../db/index.js";
+import { memoryItems, type MemoryItem } from "../db/schema/memory.js";
 
 export async function updateItemAtomic(
   db: Database,

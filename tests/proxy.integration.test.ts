@@ -1,5 +1,6 @@
 import { describe, expect, it, afterEach } from "bun:test";
-import app from "../src/index";
+import request from "supertest";
+import { createApp } from "../src/index";
 
 const UPSTREAM_BODY = {
   id: "chatcmpl-123",
@@ -63,64 +64,48 @@ describe("Transparent Proxy Integration (fail-open, response identity)", () => {
       });
     }) as any;
 
-    const res = await app.request(
-      "/v1/chat/completions",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: "Bearer 1234" },
-        body: JSON.stringify({
-          model: "gpt-test",
-          messages: [{ role: "user", content: "I prefer PostgreSQL" }],
-        }),
-      },
-      chatRequestEnv()
-    );
+    const res = await request(createApp(chatRequestEnv()))
+      .post("/v1/chat/completions")
+      .set("Content-Type", "application/json")
+      .set("Authorization", "Bearer 1234")
+      .send({
+        model: "gpt-test",
+        messages: [{ role: "user", content: "I prefer PostgreSQL" }],
+      });
 
     expect(res.status).toBe(200);
-    expect(res.headers.get("content-type")).toContain("application/json");
-    const json = await res.json();
-    expect(json).toEqual(UPSTREAM_BODY);
+    expect(res.headers["content-type"]).toContain("application/json");
+    expect(res.body).toEqual(UPSTREAM_BODY);
   });
 
   it("streams SSE responses unchanged through the gateway", async () => {
     globalThis.fetch = (async () => sseResponse()) as any;
 
-    const res = await app.request(
-      "/v1/chat/completions",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: "Bearer 1234" },
-        body: JSON.stringify({
-          model: "gpt-test",
-          stream: true,
-          messages: [{ role: "user", content: "hi" }],
-        }),
-      },
-      chatRequestEnv()
-    );
+    const res = await request(createApp(chatRequestEnv()))
+      .post("/v1/chat/completions")
+      .set("Content-Type", "application/json")
+      .set("Authorization", "Bearer 1234")
+      .send({
+        model: "gpt-test",
+        stream: true,
+        messages: [{ role: "user", content: "hi" }],
+      });
 
     expect(res.status).toBe(200);
-    expect(res.headers.get("content-type")).toContain("text/event-stream");
-
-    const text = await res.text();
-    expect(text).toBe(SSE_CHUNKS.join(""));
+    expect(res.headers["content-type"]).toContain("text/event-stream");
+    expect(res.text).toBe(SSE_CHUNKS.join(""));
   });
 
   it("returns 400 with OpenAI-style error for malformed JSON", async () => {
-    const res = await app.request(
-      "/v1/chat/completions",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: "Bearer 1234" },
-        body: "{not valid json",
-      },
-      chatRequestEnv()
-    );
+    const res = await request(createApp(chatRequestEnv()))
+      .post("/v1/chat/completions")
+      .set("Content-Type", "application/json")
+      .set("Authorization", "Bearer 1234")
+      .send("{not valid json");
 
     expect(res.status).toBe(400);
-    const json = await res.json();
-    expect(json.error.type).toBe("invalid_request_error");
-    expect(json.error.code).toBe("invalid_json");
+    expect(res.body.error.type).toBe("invalid_request_error");
+    expect(res.body.error.code).toBe("invalid_json");
   });
 
   it("maps upstream failures to 502 without leaking internals", async () => {
@@ -128,23 +113,18 @@ describe("Transparent Proxy Integration (fail-open, response identity)", () => {
       throw new Error("connection refused with secret-details");
     }) as any;
 
-    const res = await app.request(
-      "/v1/chat/completions",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: "Bearer 1234" },
-        body: JSON.stringify({
-          model: "gpt-test",
-          messages: [{ role: "user", content: "hi" }],
-        }),
-      },
-      chatRequestEnv()
-    );
+    const res = await request(createApp(chatRequestEnv()))
+      .post("/v1/chat/completions")
+      .set("Content-Type", "application/json")
+      .set("Authorization", "Bearer 1234")
+      .send({
+        model: "gpt-test",
+        messages: [{ role: "user", content: "hi" }],
+      });
 
     expect(res.status).toBe(502);
-    const json = await res.json();
-    expect(json.error.type).toBe("upstream_error");
-    expect(JSON.stringify(json)).not.toContain("secret-details");
+    expect(res.body.error.type).toBe("upstream_error");
+    expect(JSON.stringify(res.body)).not.toContain("secret-details");
   });
 
   it("fails open: missing DB config does not block upstream forwarding", async () => {
@@ -157,22 +137,17 @@ describe("Transparent Proxy Integration (fail-open, response identity)", () => {
       });
     }) as any;
 
-    const res = await app.request(
-      "/v1/chat/completions",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: "Bearer 1234" },
-        body: JSON.stringify({
-          model: "gpt-test",
-          messages: [{ role: "user", content: "I prefer PostgreSQL" }],
-        }),
-      },
-      { UPSTREAM_BASE_URL: "https://upstream.test/v1" }
-    );
+    const res = await request(createApp({ UPSTREAM_BASE_URL: "https://upstream.test/v1" }))
+      .post("/v1/chat/completions")
+      .set("Content-Type", "application/json")
+      .set("Authorization", "Bearer 1234")
+      .send({
+        model: "gpt-test",
+        messages: [{ role: "user", content: "I prefer PostgreSQL" }],
+      });
 
     expect(res.status).toBe(200);
     expect(upstreamCalled).toBe(true);
-    const json = await res.json();
-    expect(json.choices[0].message.content).toBe("Hello from upstream");
+    expect(res.body.choices[0].message.content).toBe("Hello from upstream");
   });
 });

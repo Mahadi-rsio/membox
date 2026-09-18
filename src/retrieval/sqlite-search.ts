@@ -1,9 +1,9 @@
 import { eq, and, like } from "drizzle-orm";
-import type { Database } from "../db";
-import { messages } from "../db/schema/messages";
-import { memoryItems } from "../db/schema/memory";
-import { MemoryStatus } from "../models/memory";
-import type { Retriever, RetrievalResult } from "./interface";
+import type { Database } from "../db/index.js";
+import { messages } from "../db/schema/messages.js";
+import { memoryItems } from "../db/schema/memory.js";
+import { MemoryStatus } from "../models/memory.js";
+import type { Retriever, RetrievalResult } from "./interface.js";
 
 /** SQLite/libSQL LIKE-based retriever (portable across Turso and local SQLite). */
 export class SqliteRetriever implements Retriever {

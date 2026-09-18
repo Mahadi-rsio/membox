@@ -51,14 +51,15 @@ expect everyone to follow it in all project spaces and interactions.
 
 ## Development setup
 
-Create your local secrets file:
+Create your local config file:
 
 ```bash
-cp .dev.vars.example .dev.vars
+cp .env.example .env
 ```
 
-Edit `.dev.vars` and set `UPSTREAM_API_KEY` (your main AI key) and `DATABASE_URL`
-(a [Neon](https://neon.tech) PostgreSQL connection string). Apply migrations:
+Edit `.env` and set `UPSTREAM_API_KEY` (your main AI key) and `DATABASE_URL`
+(a PostgreSQL connection string — any Postgres, including a local Docker
+instance, works). Apply migrations (or rely on auto-migrate on boot):
 
 ```bash
 bun run db:migrate
@@ -67,14 +68,14 @@ bun run db:migrate
 Start the dev server:
 
 ```bash
-bun run dev        # → wrangler dev → http://localhost:8787
+bun run dev        # → Node/Express → http://localhost:8787
 ```
 
 ## Project structure
 
 ```text
-src/                # Gateway source (Hono, Cloudflare Workers)
-web/                # React + shadcn chat UI (bundled into the Worker)
+src/                # Gateway source (Express, Node.js)
+web/                # React + shadcn chat UI + Express chat server
 memory-core/        # Astro + React landing page (static site)
 tests/              # bun test suite
 drizzle/            # Generated SQL migrations
@@ -156,15 +157,15 @@ We use `bun test`. Run the full suite:
 bun test
 ```
 
-Some integration tests require live services (Neon database, Upstash Redis).
-Source the environment from `.dev.vars` before running those:
+Some integration tests require live services (a PostgreSQL database and an
+optional Redis). Source the environment from `.env` before running those:
 
 ```bash
-export $(grep -E '^(DATABASE_URL|UPSTASH_REDIS)' .dev.vars | xargs)
+export $(grep -E '^(DATABASE_URL|MIGRATION_DATABASE_URL|REDIS_URL)' .env | xargs)
 bun test
 ```
 
-> **Note:** `.dev.vars` is not auto-loaded by `bun test`.
+> **Note:** `.env` is not auto-loaded by `bun test`.
 
 ## Style guide
 
@@ -172,7 +173,7 @@ bun test
 - **Formatting** — [Prettier](https://prettier.io/) with the repo config.
   Run `bun run format` in `web/` / `memory-core/` to auto-format.
 - **Naming** — descriptive names; follow the conventions of the file you're editing.
-- **No secrets** — never commit `.dev.vars`, API keys, or connection strings.
+- **No secrets** — never commit `.env`, API keys, or connection strings.
 - **Comments** — write comments that explain *why*, not *what*.
 
 ## Reporting issues

@@ -9,20 +9,20 @@
  * touches the database directly — it calls these through the Gateway.
  */
 import { eq } from "drizzle-orm";
-import type { Database } from "../db";
-import { memoryItems, type MemoryItem } from "../db/schema/memory";
+import type { Database } from "../db/index.js";
+import { memoryItems, type MemoryItem } from "../db/schema/memory.js";
 import {
   MemoryStatus,
   MemoryType,
   type CandidateMemory,
   type MemoryScores,
   type FactScope,
-} from "../models/memory";
-import { persistCandidates, listMemoryItems } from "./state";
-import { updateItemAtomic } from "./concurrency";
-import { retrieveMemories } from "./retrieve";
-import { slugify, structuredFactToContent, structuredFactToTopicKey } from "./facts";
-import { warn } from "../log";
+} from "../models/memory.js";
+import { persistCandidates, listMemoryItems } from "./state.js";
+import { updateItemAtomic } from "./concurrency.js";
+import { retrieveMemories } from "./retrieve.js";
+import { slugify, structuredFactToContent, structuredFactToTopicKey } from "./facts.js";
+import { warn } from "../log.js";
 
 export interface SaveMemoryInput {
   userId: string;

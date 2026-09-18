@@ -11,10 +11,10 @@
 
 <p align="center">
   <a href="https://github.com/Mahadi-rsio/Remember/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License" /></a>
-  <img src="https://img.shields.io/badge/runtime-Cloudflare%20Workers-orange" alt="Runtime" />
+  <img src="https://img.shields.io/badge/runtime-Node.js%20%2F%20Express-green" alt="Runtime" />
   <img src="https://img.shields.io/badge/lang-TypeScript-blue" alt="Language" />
-  <img src="https://img.shields.io/badge/database-Neon%20(PostgreSQL)-green" alt="Database" />
-  <img src="https://img.shields.io/badge/cache-Upstash%20Redis-red" alt="Cache" />
+  <img src="https://img.shields.io/badge/database-PostgreSQL-green" alt="Database" />
+  <img src="https://img.shields.io/badge/cache-Redis-red" alt="Cache" />
 </p>
 
 <p align="center">
@@ -34,7 +34,7 @@ Clients only change their `base_url` — no SDKs, no MCP, no custom tools requir
 ```
 Client ──▶ Gateway ──▶ Main AI (answers)
               │
-              └─▶ Neon (PostgreSQL): raw archive + compact memory + compiled context
+              └─▶ PostgreSQL: raw archive + compact memory + compiled context
 ```
 
 > **MCP support:** an MCP layer is also available for session-aware clients that want
@@ -58,44 +58,65 @@ Client ──▶ Gateway ──▶ Main AI (answers)
 
 ```bash
 bun install
-cp .dev.vars.example .dev.vars
-# Edit .dev.vars — set UPSTREAM_API_KEY + DATABASE_URL
+cp .env.example .env
+# Edit .env — set UPSTREAM_API_KEY + DATABASE_URL
 
-bun run db:migrate         # apply migrations to Neon
-bun run dev                # → wrangler dev → http://localhost:8787
+bun run db:migrate         # apply migrations to PostgreSQL
+bun run dev                # → Node/Express → http://localhost:8787
 curl http://localhost:8787/health
 ```
 
-No Neon database yet? Create one:
+Need a self-hosted PostgreSQL (or PgBouncer) database? Run one with Docker:
 
-1. Sign up at [neon.tech](https://neon.tech) and create a project.
-2. Copy the pooled connection string
-   (`postgresql://user:password@...neon.tech/dbname?sslmode=require`).
-3. Paste it as `DATABASE_URL` in `.dev.vars`.
+```bash
+docker run -d --name pg -e POSTGRES_USER=remember -e POSTGRES_PASSWORD=remember \
+  -e POSTGRES_DB=remember -p 5432:5432 postgres:16-alpine
+# point DATABASE_URL (and MIGRATION_DATABASE_URL) at it
+```
 
-Run the test suite:
+Run the test suite (integration tests require `DATABASE_URL`/`REDIS_URL` set):
 
 ```bash
 bun test
 ```
 
-### Deploy to Cloudflare
+### Deploy to Node
+
+The gateway is a plain Node.js/Express app — deploy it to any Node host
+(Render, Railway, Fly.io, a VPS, Docker, etc.).
 
 ```bash
-# Set secrets (never committed to source)
-wrangler secret put UPSTREAM_API_KEY
-wrangler secret put DATABASE_URL
-wrangler secret put GATEWAY_API_KEY           # optional
-wrangler secret put UPSTASH_REDIS_REST_URL    # optional
-wrangler secret put UPSTASH_REDIS_REST_TOKEN  # optional
-wrangler secret put MEMORY_AI_API_KEY         # optional
+# Set environment variables (never committed to source)
+export UPSTREAM_API_KEY=...
+export DATABASE_URL=...                  # runtime Postgres (direct or via PgBouncer)
+export MIGRATION_DATABASE_URL=...        # optional: direct Postgres for migrations
+export REDIS_URL=...                     # optional: self-hosted Redis
+export GATEWAY_API_KEY=...               # optional
+export MEMORY_AI_API_KEY=...             # optional
 
-# Apply migrations to Neon
-bun run db:migrate
-
-# Deploy the Worker
-bun run deploy
+# Start the server (auto-applies migrations, then runs via tsx;
+# add a process manager for production)
+bun run start
 ```
+
+### Docker Compose (self-hosted stack)
+
+The repository includes a `docker-compose.yml` that brings up PostgreSQL,
+PgBouncer (transaction pooling), Redis, and the gateway together. The gateway
+**auto-applies migrations on boot** — there is no separate migrate container.
+
+```bash
+# from the repo root
+docker compose up --build
+
+# gateway → http://localhost:8787
+curl http://localhost:8787/health
+```
+
+- The gateway talks to Postgres through **PgBouncer** for runtime traffic.
+- Migrations run DDL and go **directly to Postgres** via `MIGRATION_DATABASE_URL`.
+- Set `AUTO_MIGRATE=false` to disable auto-migration on boot.
+
 
 ## 🧠 How it works
 
@@ -112,15 +133,15 @@ The main AI always generates the answer; responses are returned **unchanged**
 
 ### Built-in chat UI
 
-The Worker also serves a React + shadcn chat UI (built from [`web/`](./web/)) and a
-`POST /api/chat` endpoint, all on the same port.
+The server also serves a React + shadcn chat UI (built from [`web/`](./web/)) and a
+`POST /api/chat` endpoint.
 
 ```bash
 cd web && bun install && bun run build     # build the UI into web/dist
-bun run dev                                # → http://localhost:8787 (UI + gateway)
+bun run server                              # → http://localhost:8000 (UI + chat)
 ```
 
-Open **http://localhost:8787** to chat.
+Open **http://localhost:8000** to chat.
 
 ### Landing page
 
@@ -188,18 +209,22 @@ Full endpoint reference: [api.md](api.md).
 
 ## ⚙️ Environment
 
-Local secrets live in `.dev.vars` (never committed). Non-secret vars go in `wrangler.jsonc` under `"vars"`.
+Local configuration lives in `.env` (never committed). See `.env.example` for all variables.
 
-| Variable | Default | Where | Purpose |
-|----------|---------|-------|---------|
-| `DATABASE_URL` | — | **secret** / `.dev.vars` | **Required for memory.** Neon/PostgreSQL connection string |
-| `UPSTREAM_BASE_URL` | `https://api.openai.com/v1` | `wrangler.jsonc` | Main AI provider base URL |
-| `UPSTREAM_API_KEY` | — | **secret** | **Required.** Key for the main AI |
-| `MEMORY_AI_ENABLED` | `false` | `wrangler.jsonc` | Optional AI compressor for memory |
-| `MEMORY_AI_BASE_URL` / `_MODEL` / `_API_KEY` | — | jsonc / secret | Memory AI config |
-| `CONTEXT_BUDGET` | `8000` | `wrangler.jsonc` | Token budget for compiled context |
-| `GATEWAY_API_KEY` | unset | secret | Optional bearer auth on the gateway |
-| `UPSTASH_REDIS_REST_URL` / `_TOKEN` | unset | secret | Optional Redis cache + rate limiting |
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `DATABASE_URL` | — | **Required for memory.** PostgreSQL connection string (direct or via PgBouncer) |
+| `MIGRATION_DATABASE_URL` | = `DATABASE_URL` | Optional: direct Postgres endpoint for auto-migrations (needed when `DATABASE_URL` points at PgBouncer, which cannot run DDL) |
+| `AUTO_MIGRATE` | `true` | Set `false` to skip applying migrations on server boot |
+| `UPSTREAM_BASE_URL` | `https://api.openai.com/v1` | Main AI provider base URL |
+| `UPSTREAM_API_KEY` | — | **Required.** Key for the main AI |
+| `MEMORY_AI_ENABLED` | `false` | Optional AI compressor for memory |
+| `MEMORY_AI_BASE_URL` / `_MODEL` / `_API_KEY` | — | Memory AI config |
+| `CONTEXT_BUDGET` | `8000` | Token budget for compiled context |
+| `GATEWAY_API_KEY` | unset | Optional bearer auth on the gateway |
+| `REDIS_URL` | unset | Optional self-hosted Redis for cache + rate limiting |
+| `PORT` | `8787` | HTTP port the gateway listens on |
+| `HOST` | `127.0.0.1` | Bind address for the gateway |
 
 ### Providers
 
@@ -222,24 +247,25 @@ at it. The Memory AI compressor (optional) is configured separately and never an
 
 ```text
 src/
-├── index.ts              # Hono app entry
-├── env.ts                # Env bindings interface
-├── routes/               # v1.ts, health.ts, auth.ts, rate-limit.ts
+├── index.ts              # Express app entry (createApp factory + listener)
+├── env.ts                # Env interface + getEnv() from process.env
+├── http.ts               # Express Request/Response helpers
+├── routes/               # v1.ts, chat.ts, memory.ts, health.ts, auth.ts, rate-limit.ts
 ├── providers/            # OpenAI-compatible adapter, Memory AI adapter
 ├── memory/               # delta, engine, extractor, facts, correction, revocation,
 │                         # interrogative, low-info, scorer, contradiction, state, isolation
 ├── context/              # compiler, assembler, selector, tokens
 ├── storage/              # archive.ts (raw message writer)
 ├── retrieval/            # Retriever interface + PostgreSQL backend
-├── cache/                # version-aware cache (Upstash Redis optional)
+├── cache/                # version-aware cache (self-hosted Redis optional)
 ├── models/               # Zod schemas + TypeScript types
-└── db/                   # Drizzle ORM + Neon client
+└── db/                   # Drizzle ORM + pg client (self-hosted PostgreSQL)
 
 drizzle/                  # Generated SQL migrations
-scripts/migrate.ts        # Apply migrations to Neon
+scripts/migrate.ts        # Apply migrations to PostgreSQL (manual)
+scripts/automigrate.ts    # Auto-apply migrations on server boot (src/index.ts)
 tests/                    # bun test suite
-wrangler.jsonc            # Cloudflare Workers config
-web/                      # React + shadcn chat UI (bundled into the Worker)
+web/                      # React + shadcn chat UI + Express chat server
 memory-core/              # Astro + React landing page (static site)
 ```
 
@@ -247,21 +273,20 @@ memory-core/              # Astro + React landing page (static site)
 
 ```bash
 bun install
-bun run dev          # wrangler dev
+bun run dev          # Node/Express via tsx
 bun test             # test suite
 bun run typecheck    # tsc --noEmit
 bun run db:migrate   # apply migrations
-bun run deploy       # deploy to Cloudflare Workers
 ```
 
 Design docs: [architecture.md](architecture.md), [PROMT.md](PROMT.md), [api.md](api.md).
 
 ## 🔒 Security
 
-- Upstream API keys are Wrangler secrets only; never logged, never archived, never echoed in errors.
+- Upstream API keys are environment variables only; never logged, never archived, never echoed in errors.
 - Optional `GATEWAY_API_KEY` enables bearer auth for clients.
-- Conversation data is isolated per conversation/user key; raw history and compact memory live in Neon (PostgreSQL).
-- Rate limiting via Upstash Ratelimit guards against abuse; memory/DB/retrieval failures degrade gracefully (the main AI is still called).
+- Conversation data is isolated per conversation/user key; raw history and compact memory live in PostgreSQL.
+- Rate limiting via self-hosted Redis guards against abuse; memory/DB/retrieval failures degrade gracefully (the main AI is still called).
 
 Found a vulnerability? Please read our [Security Policy](SECURITY.md).
 

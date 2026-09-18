@@ -5,10 +5,10 @@ Track work against `plan.md`. Check items as they land.
 ## Phase 0 — Skeleton ✅
 
 - [x] Create `src/` package layout (`routes`, `providers`, `memory`, `context`, `storage`, `retrieval`, `cache`, `models`, `db`)
-- [x] Hono app entry (`src/index.ts`) + env bindings via `wrangler.jsonc`
-- [x] `.dev.vars.example`, `package.json`, `wrangler.jsonc`
+- [x] Express app entry (`src/index.ts`) + env from `process.env`
+- [x] `.env.example`, `package.json`
 - [x] Health check route
-- [x] Verify `wrangler dev` starts with D1 only
+- [x] Verify `bun run dev` starts with Neon only
 
 ## Phase 1 — Transparent Proxy ✅
 
@@ -75,7 +75,7 @@ Track work against `plan.md`. Check items as they land.
 - [x] Safe client error responses (502 upstream, 400 bad JSON)
 - [x] Failure isolation: Memory AI / D1 / retrieval failures → still call main AI
 - [x] README: install, env, client setup, providers, budget, streaming, troubleshooting, security
-- [x] `wrangler deploy` one-command deploy
+- [x] `bun run start` one-command production start
 
 ## Phase 8 — Memory Correctness ✅
 
@@ -271,7 +271,7 @@ Track work against `plan.md`. Check items as they land.
 
 ## Explicit Non-Goals
 
-- [ ] ~~Docker / server deployment~~ (Cloudflare Workers only)
+- [x] ~~Docker / server deployment~~ (now the primary Node/Express deployment model)
 - [ ] ~~Python runtime~~
 - [ ] ~~Require Redis / vector DB / embeddings~~ (optional only)
 - [ ] ~~Build conventional RAG as primary architecture~~
@@ -287,4 +287,4 @@ Track work against `plan.md`. Check items as they land.
 - [ ] Raw archive recoverable; compact memory repairable
 - [ ] Streaming and non-streaming responses unchanged
 - [ ] Tests pass with `bun test`
-- [ ] `wrangler deploy` ships to production
+- [ ] `bun run start` ships to production

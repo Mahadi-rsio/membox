@@ -1,13 +1,13 @@
 import { eq, and } from "drizzle-orm";
-import type { Database } from "../db";
-import { users as usersTable } from "../db/schema/users";
-import { messages as messagesTable, type Message } from "../db/schema/messages";
-import { detectDelta, type DeltaResult } from "../memory/delta";
-import { processMemoryDelta, processMemoryDeltaAsync } from "../memory/engine";
-import type { ShortTermContextStore } from "../memory/context-store";
-import type { ExtractionFallbackOptions } from "../memory/extractor";
-import type { NormalizedMessage } from "../memory/ids";
-import type { MemoryAIAdapter } from "../providers/memory-ai";
+import type { Database } from "../db/index.js";
+import { users as usersTable } from "../db/schema/users.js";
+import { messages as messagesTable, type Message } from "../db/schema/messages.js";
+import { detectDelta, type DeltaResult } from "../memory/delta.js";
+import { processMemoryDelta, processMemoryDeltaAsync } from "../memory/engine.js";
+import type { ShortTermContextStore } from "../memory/context-store.js";
+import type { ExtractionFallbackOptions } from "../memory/extractor.js";
+import type { NormalizedMessage } from "../memory/ids.js";
+import type { MemoryAIAdapter } from "../providers/memory-ai.js";
 
 export function extractMessageList(body: Record<string, any>): Array<Record<string, any>> {
   const msgs = body.messages;

@@ -7,10 +7,10 @@
  * ADDITIONAL retrieval strategy layered on top — not a rewrite of this engine.
  */
 import { and, eq, gte, lte, desc, or, like, inArray } from "drizzle-orm";
-import type { Database } from "../db";
-import { memoryItems, type MemoryItem } from "../db/schema/memory";
-import { MemoryStatus } from "../models/memory";
-import { parseIdList } from "./contradiction";
+import type { Database } from "../db/index.js";
+import { memoryItems, type MemoryItem } from "../db/schema/memory.js";
+import { MemoryStatus } from "../models/memory.js";
+import { parseIdList } from "./contradiction.js";
 
 export interface MemoryRetrievalQuery {
   userId: string;

@@ -1,8 +1,8 @@
 import Groq from "groq-sdk";
 import type { ChatCompletionMessageParam } from "groq-sdk/resources/chat/completions";
-import { MemoryType, type StructuredFact, FactState } from "../models/memory";
-import { isInterrogative } from "./interrogative";
-import { info, warn, debug } from "../log";
+import { MemoryType, type StructuredFact, FactState } from "../models/memory.js";
+import { isInterrogative } from "./interrogative.js";
+import { info, warn, debug } from "../log.js";
 
 // ============================================================
 // 1. EXISTING EXPORTS — preserved exactly for backward compat

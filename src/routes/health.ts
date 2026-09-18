@@ -1,13 +1,13 @@
-import { Hono } from "hono";
-import type { HonoContext } from "../env";
-import { getDb } from "../db";
-import { getRedis } from "../cache";
+import { Router } from "express";
+import { getDb } from "../db/index.js";
+import { getRedis } from "../cache/index.js";
+import { getEnv } from "../http.js";
 import { sql } from "drizzle-orm";
 
-export const healthRouter = new Hono<HonoContext>();
+export const healthRouter = Router();
 
-healthRouter.get("/health", async (c) => {
-  const env = c.env;
+healthRouter.get("/health", async (req, res) => {
+  const env = getEnv(req);
   let dbReady = false;
   let redisReady = false;
 
@@ -21,7 +21,7 @@ healthRouter.get("/health", async (c) => {
     }
   }
 
-  // Upstash Redis check (optional)
+  // Redis check (optional)
   const redis = getRedis(env);
   if (redis) {
     try {
@@ -35,19 +35,19 @@ healthRouter.get("/health", async (c) => {
   const isMemoryAiEnabled =
     String(env.MEMORY_AI_ENABLED).toLowerCase() === "true";
 
-  // Fail-open when Neon is not configured (proxy still works without memory)
+  // Fail-open when Postgres is not configured (proxy still works without memory)
   const ready = dbReady || !env.DATABASE_URL;
 
-  return c.json({
+  res.json({
     status: ready ? "ok" : "degraded",
     service: "remember-memory-gateway",
-    runtime: "cloudflare-worker",
+    runtime: "node",
     database: {
-      provider: "neon",
+      provider: "postgres",
       ready: dbReady,
     },
     cache: {
-      provider: "upstash-redis",
+      provider: "redis",
       configured: Boolean(redis),
       ready: redisReady,
     },

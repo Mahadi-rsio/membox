@@ -1,8 +1,6 @@
-import { serve } from "@hono/node-server";
-import { Hono } from "hono";
-import { cors } from "hono/cors";
-import { logger } from "hono/logger";
-import { serveStatic } from "@hono/node-server/serve-static";
+import express from "express";
+import cors from "cors";
+import { Readable } from "node:stream";
 import { createUIMessageStream, createUIMessageStreamResponse, type UIMessage } from "ai";
 
 /**
@@ -23,29 +21,27 @@ function env(): ServerEnv {
   };
 }
 
-const app = new Hono<{ Bindings: ServerEnv }>();
+const app = express();
 
-app.use("*", logger());
-app.use("*", cors());
+app.use(cors());
+app.use(express.json());
 
 /**
  * The chat endpoint NEVER forwards conversation context to the model.
  * It extracts only the latest user message and sends that single message to
  * the Memory Gateway, which supplies memory/context server-side.
  */
-app.post("/api/chat", async (c) => {
+app.post("/api/chat", async (req, res) => {
   const e = env();
 
-  let body: { message?: UIMessage; model?: string } = {};
-  try {
-    body = await c.req.json();
-  } catch {
-    return c.json({ error: "Invalid JSON body" }, 400);
+  let body: { message?: UIMessage; model?: string } = req.body ?? {};
+  if (typeof body !== "object" || body === null) {
+    return res.status(400).json({ error: "Invalid JSON body" });
   }
 
   const latest = body.message;
   if (!latest || latest.role !== "user") {
-    return c.json({ error: "No user message provided" }, 400);
+    return res.status(400).json({ error: "No user message provided" });
   }
 
   const text = latest.parts
@@ -54,7 +50,7 @@ app.post("/api/chat", async (c) => {
     .join("");
 
   if (!text.trim()) {
-    return c.json({ error: "Empty message" }, 400);
+    return res.status(400).json({ error: "Empty message" });
   }
 
   const model = body.model || e.MODEL;
@@ -75,7 +71,7 @@ app.post("/api/chat", async (c) => {
 
   if (!upstream.ok || !upstream.body) {
     const errText = await upstream.text().catch(() => "");
-    return c.json({ error: "Upstream error", status: upstream.status, detail: errText }, 502);
+    return res.status(502).json({ error: "Upstream error", status: upstream.status, detail: errText });
   }
 
   const stream = createUIMessageStream({
@@ -113,19 +109,26 @@ app.post("/api/chat", async (c) => {
     },
   });
 
-  return createUIMessageStreamResponse({ stream });
+  const response = createUIMessageStreamResponse({ stream });
+  const headers = Object.fromEntries(response.headers.entries());
+  res.status(response.status).set(headers);
+  if (response.body) {
+    Readable.fromWeb(response.body as any).pipe(res);
+  } else {
+    res.end();
+  }
 });
 
-app.get("/health", (c) => c.json({ ok: true }));
+app.get("/health", (req, res) => res.json({ ok: true }));
 
-app.use("*", serveStatic({ root: "./dist" }));
-app.use("*", serveStatic({ root: "./dist", path: "index.html" }));
+app.use(express.static("./dist"));
+app.get("*", (req, res) => res.sendFile("index.html", { root: "./dist" }));
 
 const port = Number(process.env.PORT || 8000);
 const host = process.env.HOST || "127.0.0.1";
 
 if (process.env.NODE_ENV !== "test") {
-  serve({ fetch: app.fetch, port, hostname: host }, (info) => {
+  app.listen(port, host, () => {
     console.log(`\n  Remember chat server running at http://${host}:${port}`);
     console.log(`  Gateway: ${env().GATEWAY_URL}`);
     console.log(`  Model:   ${env().MODEL}\n`);

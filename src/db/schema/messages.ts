@@ -1,6 +1,6 @@
 import { pgTable, varchar, text, timestamp, serial, integer, index, uniqueIndex } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
-import { users } from "./users";
+import { users } from "./users.js";
 
 export const messages = pgTable(
   "messages",

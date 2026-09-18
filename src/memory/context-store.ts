@@ -6,7 +6,7 @@
  * TTL-expiring conversation state in Redis (or an in-memory stand-in for
  * tests / when Redis is not configured).
  */
-import type { ContextEntry } from "../models/memory";
+import type { ContextEntry } from "../models/memory.js";
 
 export interface ShortTermContextStore {
   /** Upsert a context value with an optional TTL (seconds). */

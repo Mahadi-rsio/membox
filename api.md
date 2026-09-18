@@ -4,11 +4,13 @@ OpenAI-compatible HTTP API. Clients point `base_url` at the gateway; no MCP, cus
 
 ## Base URL
 
+Production:
+
 ```
-https://<your-worker>.workers.dev/v1
+https://<your-node-host>/v1
 ```
 
-Local dev (`wrangler dev`):
+Local dev (`bun run dev`):
 
 ```
 http://localhost:8787/v1
@@ -19,7 +21,7 @@ Client → Gateway → Upstream:
 ```
 Client
   ↓
-https://<your-worker>.workers.dev/v1
+http://localhost:8787/v1   # or https://<your-node-host>/v1
   ↓
 https://api.openai.com/v1   # or OpenRouter / local / other compatible
 ```
@@ -34,18 +36,16 @@ Typical client header (when gateway auth enabled):
 Authorization: Bearer <GATEWAY_API_KEY>
 ```
 
-Upstream uses server-side config (Wrangler secrets):
+Upstream uses server-side config (environment variables, set in `.env`):
 
 ```bash
-wrangler secret put UPSTREAM_API_KEY
+export UPSTREAM_API_KEY=...
 ```
 
-Non-secret vars in `wrangler.jsonc`:
+Other server-side vars (in `.env`):
 
-```jsonc
-"vars": {
-  "UPSTREAM_BASE_URL": "https://api.openai.com/v1"
-}
+```dotenv
+UPSTREAM_BASE_URL=https://api.openai.com/v1
 ```
 
 ## Endpoints
@@ -122,7 +122,7 @@ X-Conversation-Id: my-thread-42
 Memory compression uses an optional internal adapter. It is **not** exposed as a separate public endpoint.
 
 ```bash
-wrangler secret put MEMORY_AI_API_KEY
+export MEMORY_AI_API_KEY=...
 ```
 
 ```jsonc
@@ -162,11 +162,10 @@ Memory failures must not break the main completion path.
 
 ## Rate Limiting
 
-Optional Upstash Ratelimit enforced at the gateway edge. Configure:
+Optional Redis-backed sliding-window rate limit enforced at the gateway edge. Configure:
 
 ```bash
-wrangler secret put UPSTASH_REDIS_REST_URL
-wrangler secret put UPSTASH_REDIS_REST_TOKEN
+export REDIS_URL=redis://localhost:6379
 ```
 
 ## Client Configuration Examples

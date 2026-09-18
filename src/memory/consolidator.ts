@@ -6,8 +6,8 @@
  * Fail-open: consolidation errors never break the main memory / proxy path.
  */
 import { inArray } from "drizzle-orm";
-import type { Database } from "../db";
-import { memoryItems, type MemoryItem } from "../db/schema/memory";
+import type { Database } from "../db/index.js";
+import { memoryItems, type MemoryItem } from "../db/schema/memory.js";
 import {
   MemoryRelationship,
   MemoryStatus,
@@ -15,9 +15,9 @@ import {
   type ConsolidationConflict,
   type ConsolidationResult,
   type ConsolidatedMemory,
-} from "../models/memory";
-import type { MemoryAIAdapter } from "../providers/memory-ai";
-import { listMemoryItems, writeContextVersion } from "./state";
+} from "../models/memory.js";
+import type { MemoryAIAdapter } from "../providers/memory-ai.js";
+import { listMemoryItems, writeContextVersion } from "./state.js";
 
 /** Minimum related memories before a cluster is worth consolidating. */
 export const MIN_CLUSTER_SIZE = 3;

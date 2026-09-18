@@ -5,10 +5,10 @@ import {
   type FactScope,
   type MemoryAIOutput,
   type StructuredFact,
-} from "../models/memory";
-import type { NormalizedMessage } from "./ids";
-import { scoreCandidate } from "./scorer";
-import type { MemoryAIAdapter } from "../providers/memory-ai";
+} from "../models/memory.js";
+import type { NormalizedMessage } from "./ids.js";
+import { scoreCandidate } from "./scorer.js";
+import type { MemoryAIAdapter } from "../providers/memory-ai.js";
 
 const TYPE_MAP: Record<string, MemoryType> = {
   FACT: MemoryType.FACT,

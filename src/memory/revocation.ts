@@ -1,4 +1,4 @@
-import type { Revocation } from "../models/memory";
+import type { Revocation } from "../models/memory.js";
 
 const RESET_RE =
   /^(?:the\s+|that\s+|this\s+|temporary\s+|previous\s+|old\s+)?(?<target>[\w\s/-]+?)\s+was\s+reset\b/i;
