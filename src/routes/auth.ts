@@ -1,5 +1,5 @@
-import type { Request, Response } from "../http";
-import { userIdForApiKey } from "../auth/identity";
+import type { Request, Response } from "../http.js";
+import { userIdForApiKey } from "../auth/identity.js";
 
 export interface AuthUser {
   userId: string;

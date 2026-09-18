@@ -1,16 +1,16 @@
 import { eq, and } from "drizzle-orm";
-import type { Database } from "../db";
-import { memoryItems, type MemoryItem } from "../db/schema/memory";
+import type { Database } from "../db/index.js";
+import { memoryItems, type MemoryItem } from "../db/schema/memory.js";
 import {
   type CandidateMemory,
   type Correction,
   MemoryRelationship,
   MemoryStatus,
   MemoryType,
-} from "../models/memory";
-import { contentSimilarity, shouldWriteNewItem, scoreCandidate } from "./scorer";
-import { topicKeyFromContent } from "./extractor";
-import { updateItemAtomic } from "./concurrency";
+} from "../models/memory.js";
+import { contentSimilarity, shouldWriteNewItem, scoreCandidate } from "./scorer.js";
+import { topicKeyFromContent } from "./extractor.js";
+import { updateItemAtomic } from "./concurrency.js";
 
 export type ActionKind = "skip" | "merge" | "create" | "supersede" | "reject" | "revoke" | "conflict";
 

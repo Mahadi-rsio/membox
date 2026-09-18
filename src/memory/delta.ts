@@ -1,9 +1,9 @@
 import { eq } from "drizzle-orm";
-import type { Database } from "../db";
-import { info, debug } from "../log";
-import { messages as messagesTable } from "../db/schema/messages";
-import { type NormalizedMessage, normalizeMessages } from "./ids";
-import { estimateMessagesTokens } from "../context/tokens";
+import type { Database } from "../db/index.js";
+import { info, debug } from "../log.js";
+import { messages as messagesTable } from "../db/schema/messages.js";
+import { type NormalizedMessage, normalizeMessages } from "./ids.js";
+import { estimateMessagesTokens } from "../context/tokens.js";
 
 export interface DeltaResult {
   userId: string;

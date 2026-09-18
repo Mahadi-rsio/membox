@@ -1,17 +1,17 @@
 import { Router } from "express";
 import { Readable } from "node:stream";
-import { getDb } from "../db";
-import { getRedis } from "../cache";
-import { getEnv } from "../http";
-import { createContextStoreFromRedis } from "../memory/context-store";
-import { OpenAICompatibleProvider, UpstreamError } from "../providers/openai-compatible";
-import { createMemoryAIAdapter } from "../providers/memory-ai";
-import { archiveRequestAsync } from "../storage/archive";
-import { compileContext } from "../context/compiler";
-import { checkAuth, isAuthUser, type AuthUser } from "./auth";
-import { checkRateLimit } from "./rate-limit";
-import type { ExtractionFallbackOptions } from "../memory/extractor";
-import { warn, info } from "../log";
+import { getDb } from "../db/index.js";
+import { getRedis } from "../cache/index.js";
+import { getEnv } from "../http.js";
+import { createContextStoreFromRedis } from "../memory/context-store.js";
+import { OpenAICompatibleProvider, UpstreamError } from "../providers/openai-compatible.js";
+import { createMemoryAIAdapter } from "../providers/memory-ai.js";
+import { archiveRequestAsync } from "../storage/archive.js";
+import { compileContext } from "../context/compiler.js";
+import { checkAuth, isAuthUser, type AuthUser } from "./auth.js";
+import { checkRateLimit } from "./rate-limit.js";
+import type { ExtractionFallbackOptions } from "../memory/extractor.js";
+import { warn, info } from "../log.js";
 
 export const v1Router = Router();
 

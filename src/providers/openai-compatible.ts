@@ -1,4 +1,4 @@
-import type { AIProvider, ProviderResponse, ProviderStream } from "./base";
+import type { AIProvider, ProviderResponse, ProviderStream } from "./base.js";
 
 const DROP_RESPONSE_HEADERS: ReadonlySet<string> = new Set([
   "connection",

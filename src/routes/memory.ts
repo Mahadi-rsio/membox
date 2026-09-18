@@ -1,19 +1,19 @@
 import { Router } from "express";
-import { getDb } from "../db";
-import { getRedis } from "../cache";
-import { getEnv } from "../http";
-import { createContextStoreFromRedis } from "../memory/context-store";
-import { createMemoryAIAdapter } from "../providers/memory-ai";
-import { archiveRequest } from "../storage/archive";
-import { compileContext } from "../context/compiler";
-import { memoryScopeForSession, resolveSession, isValidSessionId } from "../memory/session-scope";
+import { getDb } from "../db/index.js";
+import { getRedis } from "../cache/index.js";
+import { getEnv } from "../http.js";
+import { createContextStoreFromRedis } from "../memory/context-store.js";
+import { createMemoryAIAdapter } from "../providers/memory-ai.js";
+import { archiveRequest } from "../storage/archive.js";
+import { compileContext } from "../context/compiler.js";
+import { memoryScopeForSession, resolveSession, isValidSessionId } from "../memory/session-scope.js";
 import {
   saveMemory,
   updateMemory,
   forgetMemory,
   searchMemory,
-} from "../memory/memory-ops";
-import { checkAuth, isAuthUser } from "./auth";
+} from "../memory/memory-ops.js";
+import { checkAuth, isAuthUser } from "./auth.js";
 export interface GatewayMemory {
   entity?: string | null;
   attribute?: string | null;
@@ -28,7 +28,7 @@ export interface GatewayMemory {
   topicKey?: string;
   id?: number;
 }
-import { info, warn } from "../log";
+import { info, warn } from "../log.js";
 
 export const memoryRouter = Router();
 

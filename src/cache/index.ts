@@ -1,5 +1,5 @@
-import Redis from "ioredis";
-import type { Env } from "../env";
+import { Redis } from "ioredis";
+import type { Env } from "../env.js";
 
 let cachedRedis:
   | {

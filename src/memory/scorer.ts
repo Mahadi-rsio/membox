@@ -1,4 +1,4 @@
-import { MemoryType, type CandidateMemory, type MemoryScores } from "../models/memory";
+import { MemoryType, type CandidateMemory, type MemoryScores } from "../models/memory.js";
 
 export const SPECULATIVE_RE =
   /\b(might|maybe|perhaps|could|possibly|probably|i think|we might|considering|not sure|unsure|tentative)\b/i;

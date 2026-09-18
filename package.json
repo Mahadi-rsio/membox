@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "tsx src/index.ts",
-    "start": "tsx src/index.ts",
-    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/src/index.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "bun test",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx scripts/migrate.ts",

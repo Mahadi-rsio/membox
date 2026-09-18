@@ -1,14 +1,14 @@
-import type { Database } from "../db";
-import type { DeltaResult } from "./delta";
-import type { ApplyResult } from "./contradiction";
-import type { CandidateMemory, MemoryAIOutput } from "../models/memory";
-import type { ShortTermContextStore } from "./context-store";
-import { extractCandidates } from "./extractor";
-import { isLowInfoMessage } from "./low-info";
-import { analyzeCandidates } from "./analyzer";
-import type { ExtractionFallbackOptions } from "./extractor";
-import { info, debug } from "../log";
-import { memoryAiOutputToCandidates } from "./compressor";
+import type { Database } from "../db/index.js";
+import type { DeltaResult } from "./delta.js";
+import type { ApplyResult } from "./contradiction.js";
+import type { CandidateMemory, MemoryAIOutput } from "../models/memory.js";
+import type { ShortTermContextStore } from "./context-store.js";
+import { extractCandidates } from "./extractor.js";
+import { isLowInfoMessage } from "./low-info.js";
+import { analyzeCandidates } from "./analyzer.js";
+import type { ExtractionFallbackOptions } from "./extractor.js";
+import { info, debug } from "../log.js";
+import { memoryAiOutputToCandidates } from "./compressor.js";
 import {
   latestContextVersion,
   listMemoryItems,
@@ -16,10 +16,10 @@ import {
   memoryChanged,
   persistCandidates,
   writeContextVersion,
-} from "./state";
-import { MemoryStatus, snapshotFromItems } from "../models/memory";
-import type { MemoryAIAdapter } from "../providers/memory-ai";
-import { runConsolidationPass } from "./consolidator";
+} from "./state.js";
+import { MemoryStatus, snapshotFromItems } from "../models/memory.js";
+import type { MemoryAIAdapter } from "../providers/memory-ai.js";
+import { runConsolidationPass } from "./consolidator.js";
 
 export interface MemoryUpdateResult {
   userId: string;

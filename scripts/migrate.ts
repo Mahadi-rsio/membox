@@ -4,7 +4,7 @@
  * Loads credentials from .env (local) or process.env.
  */
 import { config } from "dotenv";
-import { runMigrations } from "./automigrate";
+import { runMigrations } from "./automigrate.js";
 
 config({ path: ".env" });
 

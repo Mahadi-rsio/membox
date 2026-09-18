@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "types": ["node", "express"],
     "lib": ["ES2022", "DOM"],
     "strict": true,
@@ -10,10 +10,14 @@
     "esModuleInterop": true,
     "isolatedModules": true,
     "resolveJsonModule": true,
-    "noEmit": true,
+    "declaration": false,
+    "sourceMap": false,
+    "rootDir": ".",
+    "outDir": "dist",
     "paths": {
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src/**/*", "drizzle.config.ts"]
+  "include": ["src/**/*", "scripts/**/*", "drizzle.config.ts"],
+  "exclude": ["scripts/live-complex-exam.ts", "scripts/live-preference-exam.ts"]
 }

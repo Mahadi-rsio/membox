@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
-import type { Env } from "./env";
+import type { Env } from "./env.js";
 
 /**
  * Express types used across the gateway routes. `Env` is attached to the app

@@ -1,9 +1,9 @@
 import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
-import * as schema from "./schema";
-import type { Env } from "../env";
+import * as schema from "./schema/index.js";
+import type { Env } from "../env.js";
 
-export * from "./schema";
+export * from "./schema/index.js";
 
 type AppDatabase = ReturnType<typeof drizzle<typeof schema>>;
 

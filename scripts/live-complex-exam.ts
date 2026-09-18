@@ -4,13 +4,13 @@
  *   export $(grep -E '^(DATABASE_URL|REDIS_URL|UPSTREAM)' .env | xargs)
  *   bun run scripts/live-complex-exam.ts
  */
-import app from "../src/index";
-import { createTestDb, createTestContextStore } from "../tests/helpers/db";
-import { archiveRequest } from "../src/storage/archive";
-import { listMemoryItems } from "../src/memory/state";
-import { runConsolidationPass } from "../src/memory/consolidator";
-import { compileContext } from "../src/context/compiler";
-import { MemoryStatus } from "../src/models/memory";
+import app from "../src/index.js";
+import { createTestDb, createTestContextStore } from "../tests/helpers/db.js";
+import { archiveRequest } from "../src/storage/archive.js";
+import { listMemoryItems } from "../src/memory/state.js";
+import { runConsolidationPass } from "../src/memory/consolidator.js";
+import { compileContext } from "../src/context/compiler.js";
+import { MemoryStatus } from "../src/models/memory.js";
 
 const MODEL = process.env.LIVE_MODEL || "deepseek-v4-flash-0731";
 const USER = `live-complex-${Date.now()}`;

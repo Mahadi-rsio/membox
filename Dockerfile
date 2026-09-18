@@ -2,9 +2,15 @@
 FROM node:24-alpine AS build
 WORKDIR /app
 
-# Install all deps for typecheck/build tooling
+# Install all deps (incl. dev) for typecheck + tsc compile
 COPY package.json bun.lock* ./
 RUN npm install --no-audit --no-fund
+
+# Compile TypeScript -> dist
+COPY tsconfig.json ./
+COPY src ./src
+COPY scripts ./scripts
+RUN npm run build
 
 # ---- Runtime stage ----
 FROM node:24-alpine AS runtime
@@ -15,15 +21,10 @@ ENV NODE_ENV=production
 COPY package.json bun.lock* ./
 RUN npm install --omit=dev --no-audit --no-fund
 
-# Install tsx globally to execute TypeScript directly
-RUN npm install -g tsx
-
-# Copy application source and migrations
-COPY src ./src
+# Copy compiled output and migrations
+COPY --from=build /app/dist ./dist
 COPY drizzle ./drizzle
-COPY scripts ./scripts
-COPY tsconfig.json ./tsconfig.json
 
 EXPOSE 8787
 
-CMD ["npm", "run", "start"]
+CMD ["node", "dist/src/index.js"]

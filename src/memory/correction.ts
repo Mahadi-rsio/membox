@@ -1,4 +1,4 @@
-import type { Correction } from "../models/memory";
+import type { Correction } from "../models/memory.js";
 
 const CORRECTION_PREFIX_RE =
   /^\s*(?:actually[,:]?\s+|correction[,:]?\s+|no[,:]?\s+|wait[,:]?\s+|on\s+second\s+thought[,:]?\s+|to\s+clarify[,:]?\s+|i\s+meant[,:]?\s+|let\s+me\s+correct\s+that[,:]?\s+|scratch\s+that[,:]?\s+)/i;

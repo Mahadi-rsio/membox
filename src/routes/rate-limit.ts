@@ -1,6 +1,6 @@
-import type { Request, Response } from "../http";
-import { getEnv } from "../http";
-import { getRateLimiter } from "../cache";
+import type { Request, Response } from "../http.js";
+import { getEnv } from "../http.js";
+import { getRateLimiter } from "../cache/index.js";
 
 export async function checkRateLimit(req: Request, res: Response): Promise<Response | null> {
   const env = getEnv(req);

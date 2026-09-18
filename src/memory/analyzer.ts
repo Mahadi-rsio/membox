@@ -14,8 +14,8 @@ import {
   MemoryType,
   type CandidateMemory,
   type FactScope,
-} from "../models/memory";
-import { isPreferenceNoiseValue } from "./facts";
+} from "../models/memory.js";
+import { isPreferenceNoiseValue } from "./facts.js";
 
 /** Markers that signal transient, currently-happening information. */
 const CONTEXT_MARKERS =

@@ -1,5 +1,5 @@
-import type { SelectableItem } from "./selector";
-import type { MemoryItem } from "../db/schema/memory";
+import type { SelectableItem } from "./selector.js";
+import type { MemoryItem } from "../db/schema/memory.js";
 
 export function formatCanonicalMemoryBlock(items: MemoryItem[]): string {
   if (!items || items.length === 0) {

@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { getDb } from "../db";
-import { getRedis } from "../cache";
-import { getEnv } from "../http";
+import { getDb } from "../db/index.js";
+import { getRedis } from "../cache/index.js";
+import { getEnv } from "../http.js";
 import { sql } from "drizzle-orm";
 
 export const healthRouter = Router();

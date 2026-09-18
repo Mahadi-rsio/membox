@@ -1,12 +1,12 @@
 import express from "express";
 import type { Express } from "express";
 import cors from "cors";
-import { getEnv, type Env } from "./env";
-import { configureLogLevel } from "./log";
-import { healthRouter } from "./routes/health";
-import { v1Router } from "./routes/v1";
-import { memoryRouter } from "./routes/memory";
-import { chatRouter } from "./routes/chat";
+import { getEnv, type Env } from "./env.js";
+import { configureLogLevel } from "./log.js";
+import { healthRouter } from "./routes/health.js";
+import { v1Router } from "./routes/v1.js";
+import { memoryRouter } from "./routes/memory.js";
+import { chatRouter } from "./routes/chat.js";
 
 export function createApp(env: Env = getEnv()): Express {
   const app = express();
@@ -101,7 +101,7 @@ if (isDirectRun) {
   // PgBouncer transaction-pooling limitation.
   if (String(process.env.AUTO_MIGRATE ?? "true").toLowerCase() !== "false") {
     try {
-      const { runMigrations } = await import("../scripts/automigrate");
+      const { runMigrations } = await import("../scripts/automigrate.js");
       await runMigrations();
     } catch (err: any) {
       console.error("Auto-migration failed:", err?.message ?? String(err));

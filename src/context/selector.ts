@@ -1,7 +1,7 @@
-import { estimateMessageTokens, estimateTokens } from "./tokens";
-import { isLowInfoMessage, normalizeUtterance, LOW_INFO_PHRASES } from "../memory/low-info";
-import { DECISION_MARKERS } from "../memory/scorer";
-import type { MemoryItem } from "../db/schema/memory";
+import { estimateMessageTokens, estimateTokens } from "./tokens.js";
+import { isLowInfoMessage, normalizeUtterance, LOW_INFO_PHRASES } from "../memory/low-info.js";
+import { DECISION_MARKERS } from "../memory/scorer.js";
+import type { MemoryItem } from "../db/schema/memory.js";
 
 const WORD_RE = /\w+/gu;
 

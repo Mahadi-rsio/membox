@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { Readable } from "node:stream";
-import { getEnv } from "../http";
-import { warn } from "../log";
+import { getEnv } from "../http.js";
+import { warn } from "../log.js";
 
 /**
  * Chat router for the local web UI.

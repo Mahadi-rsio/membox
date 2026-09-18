@@ -1,19 +1,19 @@
 import { eq, and, desc } from "drizzle-orm";
-import type { Database } from "../db";
-import { memoryItems, type MemoryItem } from "../db/schema/memory";
-import { corrections } from "../db/schema/corrections";
-import { contextVersions } from "../db/schema/context";
-import { info, debug } from "../log";
+import type { Database } from "../db/index.js";
+import { memoryItems, type MemoryItem } from "../db/schema/memory.js";
+import { corrections } from "../db/schema/corrections.js";
+import { contextVersions } from "../db/schema/context.js";
+import { info, debug } from "../log.js";
 import {
   type CandidateMemory,
   MemoryStatus,
   snapshotFromItems,
-} from "../models/memory";
+} from "../models/memory.js";
 import {
   type ApplyResult,
   applyCandidate,
   loadActiveItems,
-} from "./contradiction";
+} from "./contradiction.js";
 
 export async function listMemoryItems(
   db: Database,

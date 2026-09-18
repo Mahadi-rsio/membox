@@ -1,24 +1,24 @@
-import type { Database } from "../db";
-import { assembleContextMessages } from "./assembler";
+import type { Database } from "../db/index.js";
+import { assembleContextMessages } from "./assembler.js";
 import {
   extractKeywords,
   scoreCanonicalItem,
   scoreMessageItem,
   selectItemsForBudget,
   type SelectableItem,
-} from "./selector";
-import { estimateMessagesTokens, estimateTokens } from "./tokens";
-import { compressToolMessage } from "../memory/compressor";
-import { normalizeMessage } from "../memory/ids";
+} from "./selector.js";
+import { estimateMessagesTokens, estimateTokens } from "./tokens.js";
+import { compressToolMessage } from "../memory/compressor.js";
+import { normalizeMessage } from "../memory/ids.js";
 import {
   latestContextVersion,
   resolveActiveConflicts,
-} from "../memory/state";
-import { retrieveActiveMemories, expandRelations } from "../memory/retrieve";
-import type { ShortTermContextStore } from "../memory/context-store";
-import type { MemoryAIAdapter } from "../providers/memory-ai";
-import { contextVersions } from "../db/schema/context";
-import { info, debug } from "../log";
+} from "../memory/state.js";
+import { retrieveActiveMemories, expandRelations } from "../memory/retrieve.js";
+import type { ShortTermContextStore } from "../memory/context-store.js";
+import type { MemoryAIAdapter } from "../providers/memory-ai.js";
+import { contextVersions } from "../db/schema/context.js";
+import { info, debug } from "../log.js";
 
 export interface CompileResult {
   messages: Array<Record<string, any>>;

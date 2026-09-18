@@ -15,7 +15,7 @@
  * reach another user's or session's memory.
  */
 import { createHash } from "node:crypto";
-import { parseSessionMarker } from "./session-marker";
+import { parseSessionMarker } from "./session-marker.js";
 
 const SESSION_ID_RE = /^[A-Za-z0-9_-]{1,128}$/;
 
