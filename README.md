@@ -2,7 +2,7 @@
   <img src="memory-core/public/1000013626-removebg-preview.png" alt="Remember" width="120" />
 </p>
 
-<h1 align="center">Remember</h1>
+<h1 align="center">Recall</h1>
 
 <p align="center">
   <strong>Persistent memory for AI agents.</strong><br />
