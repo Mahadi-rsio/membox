@@ -1,7 +1,7 @@
-import { Hono } from "hono";
-import type { HonoContext } from "../env";
+import { Router } from "express";
 import { getDb } from "../db";
 import { getRedis } from "../cache";
+import { getEnv } from "../http";
 import { createContextStoreFromRedis } from "../memory/context-store";
 import { createMemoryAIAdapter } from "../providers/memory-ai";
 import { archiveRequest } from "../storage/archive";
@@ -13,7 +13,7 @@ import {
   forgetMemory,
   searchMemory,
 } from "../memory/memory-ops";
-import { checkAuth } from "./auth";
+import { checkAuth, isAuthUser } from "./auth";
 export interface GatewayMemory {
   entity?: string | null;
   attribute?: string | null;
@@ -30,15 +30,12 @@ export interface GatewayMemory {
 }
 import { info, warn } from "../log";
 
-export const memoryRouter = new Hono<HonoContext>();
+export const memoryRouter = Router();
 
-function badRequest(c: any, message: string, code = "invalid_request") {
-  return c.json(
-    {
-      error: { message, type: "invalid_request_error", code },
-    },
-    400
-  );
+function badRequest(res: any, message: string, code = "invalid_request") {
+  return res.status(400).json({
+    error: { message, type: "invalid_request_error", code },
+  });
 }
 
 function serializeMemoryItem(item: any): GatewayMemory {
@@ -69,7 +66,8 @@ function renderCompiledContext(memories: any[]): string {
 }
 
 async function runMemoryPipeline(
-  c: any,
+  req: any,
+  res: any,
   ctx: { userId: string; apiKey: string | null },
   body: {
     session_id?: string | null;
@@ -77,12 +75,13 @@ async function runMemoryPipeline(
     context?: Array<{ role: string; content: string }>;
   }
 ) {
+  const env = getEnv(req);
   const userId = ctx.userId;
-  const db = getDb(c.env);
+  const db = getDb(env);
 
   const message = typeof body.message === "string" ? body.message : "";
   if (!message.trim()) {
-    return badRequest(c, "message is required and must be a non-empty string", "invalid_message");
+    return badRequest(res, "message is required and must be a non-empty string", "invalid_message");
   }
 
   // Session marker is a compatibility mechanism: strip it and never forward it.
@@ -101,13 +100,13 @@ async function runMemoryPipeline(
 
   // Every message must flow through the standard memory pipeline (archive +
   // deterministic learning + three-way analysis). Fail-open.
-  const contextStore = createContextStoreFromRedis(getRedis(c.env));
+  const contextStore = createContextStoreFromRedis(getRedis(env));
   try {
     await archiveRequest(db, { messages }, {
       userId,
       apiKey: ctx.apiKey,
       contextStore,
-      groq: getGroq(c),
+      groq: getGroq(env),
     });
   } catch (err: any) {
     warn("memory-process", "memory pipeline failed; continuing", {
@@ -129,12 +128,12 @@ async function runMemoryPipeline(
   // chat path. Fail-open to the raw messages.
   let compiled: { messages: Array<Record<string, any>>; totalTokens: number } | null = null;
   try {
-    const res = await compileContext(db, messages, userId, {
+    const resC = await compileContext(db, messages, userId, {
       contextStore,
-      memoryAi: createMemoryAIAdapter(c.env),
+      memoryAi: createMemoryAIAdapter(env),
       persistSnapshot: true,
     });
-    compiled = { messages: res.messages, totalTokens: res.totalTokens };
+    compiled = { messages: resC.messages, totalTokens: resC.totalTokens };
   } catch {
     compiled = null;
   }
@@ -147,7 +146,7 @@ async function runMemoryPipeline(
     memoryItems: memoryItemsList.length,
   });
 
-  return c.json({
+  return res.json({
     session_id: resolvedSessionId,
     memory: memoryItemsList.map(serializeMemoryItem),
     compiled_context: renderCompiledContext(memoryItemsList),
@@ -160,64 +159,60 @@ async function runMemoryPipeline(
   });
 }
 
-function getGroq(c: any) {
-  const apiKey = c.env.GROQ_API_KEY;
+function getGroq(env: any) {
+  const apiKey = env.GROQ_API_KEY;
   if (!apiKey) return null;
   return {
     groqApiKey: apiKey,
-    groqBaseUrl: c.env.GROQ_BASE_URL,
-    groqModel: c.env.GROQ_EXTRACTION_MODEL,
+    groqBaseUrl: env.GROQ_BASE_URL,
+    groqModel: env.GROQ_EXTRACTION_MODEL,
   };
 }
 
 // POST /v1/memory/process
-memoryRouter.post("/memory/process", async (c) => {
-  const auth = checkAuth(c);
-  if (auth instanceof Response) return auth;
+memoryRouter.post("/memory/process", async (req, res) => {
+  const auth = checkAuth(req, res);
+  if (!isAuthUser(auth)) return auth;
 
-  let body: any;
-  try {
-    body = await c.req.json();
-  } catch {
-    return badRequest(c, "Request body must be valid JSON", "invalid_json");
+  let body: any = req.body;
+  if (typeof body !== "object" || body === null) {
+    return badRequest(res, "Request body must be valid JSON", "invalid_json");
   }
 
   // Resolve the memory scope. An invalid explicit session id is rejected.
   const explicitSession = typeof body.session_id === "string" ? body.session_id : null;
   if (explicitSession && !isValidSessionId(explicitSession)) {
-    return badRequest(c, "invalid session_id format", "invalid_session_id");
+    return badRequest(res, "invalid session_id format", "invalid_session_id");
   }
 
   const memoryUserId = memoryScopeForSession(auth.userId, explicitSession);
 
-  return runMemoryPipeline(c, { userId: memoryUserId, apiKey: auth.apiKey }, body);
+  return runMemoryPipeline(req, res, { userId: memoryUserId, apiKey: auth.apiKey }, body);
 });
 
 // POST /v1/memory/search
-memoryRouter.post("/memory/search", async (c) => {
-  const auth = checkAuth(c);
-  if (auth instanceof Response) return auth;
+memoryRouter.post("/memory/search", async (req, res) => {
+  const auth = checkAuth(req, res);
+  if (!isAuthUser(auth)) return auth;
 
-  let body: any;
-  try {
-    body = await c.req.json();
-  } catch {
-    return badRequest(c, "Request body must be valid JSON", "invalid_json");
+  let body: any = req.body;
+  if (typeof body !== "object" || body === null) {
+    return badRequest(res, "Request body must be valid JSON", "invalid_json");
   }
 
   const sessionId = typeof body.session_id === "string" ? body.session_id : null;
   if (sessionId && !isValidSessionId(sessionId)) {
-    return badRequest(c, "invalid session_id format", "invalid_session_id");
+    return badRequest(res, "invalid session_id format", "invalid_session_id");
   }
   const query = typeof body.query === "string" ? body.query : "";
   if (!query.trim()) {
-    return badRequest(c, "query is required", "invalid_query");
+    return badRequest(res, "query is required", "invalid_query");
   }
 
   const memoryUserId = memoryScopeForSession(auth.userId, sessionId);
   let results: any[] = [];
   try {
-    const db = getDb(c.env);
+    const db = getDb(getEnv(req));
     results = await searchMemory(db, {
       userId: memoryUserId,
       query,
@@ -227,7 +222,7 @@ memoryRouter.post("/memory/search", async (c) => {
     warn("memory-search", "search failed", { error: err?.message ?? String(err) });
   }
 
-  return c.json({
+  return res.json({
     session_id: sessionId,
     query,
     results: results.map(serializeMemoryItem),
@@ -235,29 +230,27 @@ memoryRouter.post("/memory/search", async (c) => {
 });
 
 // POST /v1/memory/save
-memoryRouter.post("/memory/save", async (c) => {
-  const auth = checkAuth(c);
-  if (auth instanceof Response) return auth;
+memoryRouter.post("/memory/save", async (req, res) => {
+  const auth = checkAuth(req, res);
+  if (!isAuthUser(auth)) return auth;
 
-  let body: any;
-  try {
-    body = await c.req.json();
-  } catch {
-    return badRequest(c, "Request body must be valid JSON", "invalid_json");
+  let body: any = req.body;
+  if (typeof body !== "object" || body === null) {
+    return badRequest(res, "Request body must be valid JSON", "invalid_json");
   }
 
   const sessionId = typeof body.session_id === "string" ? body.session_id : null;
   if (sessionId && !isValidSessionId(sessionId)) {
-    return badRequest(c, "invalid session_id format", "invalid_session_id");
+    return badRequest(res, "invalid session_id format", "invalid_session_id");
   }
   if (typeof body.value !== "string" || !body.value.trim()) {
-    return badRequest(c, "value is required", "invalid_value");
+    return badRequest(res, "value is required", "invalid_value");
   }
 
   const memoryUserId = memoryScopeForSession(auth.userId, sessionId);
   try {
-    const db = getDb(c.env);
-    const res = await saveMemory(db, {
+    const db = getDb(getEnv(req));
+    const result = await saveMemory(db, {
       userId: memoryUserId,
       subject: body.subject,
       attribute: body.attribute,
@@ -265,43 +258,41 @@ memoryRouter.post("/memory/save", async (c) => {
       type: body.type,
       scope: body.scope,
     });
-    return c.json({
+    return res.json({
       session_id: sessionId,
-      action: res.action,
-      reason: res.reason,
-      memory: res.item ? serializeMemoryItem(res.item) : null,
-      superseded: res.superseded ? serializeMemoryItem(res.superseded) : null,
+      action: result.action,
+      reason: result.reason,
+      memory: result.item ? serializeMemoryItem(result.item) : null,
+      superseded: result.superseded ? serializeMemoryItem(result.superseded) : null,
     });
   } catch (err: any) {
     warn("memory-save", "save failed", { error: err?.message ?? String(err) });
-    return badRequest(c, "failed to save memory", "save_failed");
+    return badRequest(res, "failed to save memory", "save_failed");
   }
 });
 
 // POST /v1/memory/update
-memoryRouter.post("/memory/update", async (c) => {
-  const auth = checkAuth(c);
-  if (auth instanceof Response) return auth;
+memoryRouter.post("/memory/update", async (req, res) => {
+  const auth = checkAuth(req, res);
+  if (!isAuthUser(auth)) return auth;
 
-  let body: any;
-  try {
-    body = await c.req.json();
-  } catch {
-    return badRequest(c, "Request body must be valid JSON", "invalid_json");
+  let body: any = req.body;
+  if (typeof body !== "object" || body === null) {
+    return badRequest(res, "Request body must be valid JSON", "invalid_json");
   }
 
   const sessionId = typeof body.session_id === "string" ? body.session_id : null;
   if (sessionId && !isValidSessionId(sessionId)) {
-    return badRequest(c, "invalid session_id format", "invalid_session_id");
+    return badRequest(res, "invalid session_id format", "invalid_session_id");
   }
   if (typeof body.value !== "string" || !body.value.trim()) {
-    return badRequest(c, "value is required", "invalid_value");
+    return badRequest(res, "value is required", "invalid_value");
   }
 
   const memoryUserId = memoryScopeForSession(auth.userId, sessionId);
   try {
-    const db = getDb(c.env);
-    const res = await updateMemory(db, memoryUserId, {
+    const db = getDb(getEnv(req));
+    const result = await updateMemory(db, memoryUserId, {
       id: body.id != null ? Number(body.id) : undefined,
       topicKey: body.topic_key,
       value: body.value,
@@ -309,52 +300,50 @@ memoryRouter.post("/memory/update", async (c) => {
       subject: body.subject,
       type: body.type,
     });
-    return c.json({
+    return res.json({
       session_id: sessionId,
-      action: res.action,
-      reason: res.reason,
-      memory: res.item ? serializeMemoryItem(res.item) : null,
-      superseded: res.superseded ? serializeMemoryItem(res.superseded) : null,
+      action: result.action,
+      reason: result.reason,
+      memory: result.item ? serializeMemoryItem(result.item) : null,
+      superseded: result.superseded ? serializeMemoryItem(result.superseded) : null,
     });
   } catch (err: any) {
     warn("memory-update", "update failed", { error: err?.message ?? String(err) });
-    return badRequest(c, "failed to update memory", "update_failed");
+    return badRequest(res, "failed to update memory", "update_failed");
   }
 });
 
 // POST /v1/memory/forget
-memoryRouter.post("/memory/forget", async (c) => {
-  const auth = checkAuth(c);
-  if (auth instanceof Response) return auth;
+memoryRouter.post("/memory/forget", async (req, res) => {
+  const auth = checkAuth(req, res);
+  if (!isAuthUser(auth)) return auth;
 
-  let body: any;
-  try {
-    body = await c.req.json();
-  } catch {
-    return badRequest(c, "Request body must be valid JSON", "invalid_json");
+  let body: any = req.body;
+  if (typeof body !== "object" || body === null) {
+    return badRequest(res, "Request body must be valid JSON", "invalid_json");
   }
 
   const sessionId = typeof body.session_id === "string" ? body.session_id : null;
   if (sessionId && !isValidSessionId(sessionId)) {
-    return badRequest(c, "invalid session_id format", "invalid_session_id");
+    return badRequest(res, "invalid session_id format", "invalid_session_id");
   }
 
   const memoryUserId = memoryScopeForSession(auth.userId, sessionId);
   try {
-    const db = getDb(c.env);
-    const res = await forgetMemory(db, memoryUserId, {
+    const db = getDb(getEnv(req));
+    const result = await forgetMemory(db, memoryUserId, {
       id: body.id != null ? Number(body.id) : undefined,
       topicKey: body.topic_key,
       attribute: body.attribute,
       content: body.content,
     });
-    return c.json({
+    return res.json({
       session_id: sessionId,
-      action: res.action,
-      removed: res.removed.map(serializeMemoryItem),
+      action: result.action,
+      removed: result.removed.map(serializeMemoryItem),
     });
   } catch (err: any) {
     warn("memory-forget", "forget failed", { error: err?.message ?? String(err) });
-    return badRequest(c, "failed to forget memory", "forget_failed");
+    return badRequest(res, "failed to forget memory", "forget_failed");
   }
 });

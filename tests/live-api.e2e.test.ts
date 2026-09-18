@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import app from "../src/index";
+import request from "supertest";
+import { createApp } from "../src/index";
 import { createTestDb } from "./helpers/db";
 import type { Database } from "../src/db";
 import { getRedis } from "../src/cache";
@@ -37,33 +38,27 @@ describe("Live API E2E (real upstream, real Neon, real Redis)", () => {
   });
 
   it("returns the real upstream model list via /v1/models", async () => {
-    const res = await app.request(
-      "/v1/models",
-      { headers: { Authorization: "Bearer 1234" } },
-      liveEnv()
-    );
+    const res = await request(createApp(liveEnv()))
+      .get("/v1/models")
+      .set("Authorization", "Bearer 1234");
     expect(res.status).toBe(200);
-    const data = (await res.json()) as any;
+    const data = res.body as any;
     const ids = data.data.map((m: any) => m.id);
     expect(ids).toContain(LIVE_MODEL);
   });
 
   it("forwards to the real upstream and returns a real answer", async () => {
-    const res = await app.request(
-      "/v1/chat/completions",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: "Bearer 1234" },
-        body: JSON.stringify({
-          model: LIVE_MODEL,
-          messages: [{ role: "user", content: "Reply with exactly: OK" }],
-          max_tokens: 10,
-        }),
-      },
-      liveEnv()
-    );
+    const res = await request(createApp(liveEnv()))
+      .post("/v1/chat/completions")
+      .set("Content-Type", "application/json")
+      .set("Authorization", "Bearer 1234")
+      .send({
+        model: LIVE_MODEL,
+        messages: [{ role: "user", content: "Reply with exactly: OK" }],
+        max_tokens: 10,
+      });
     expect(res.status).toBe(200);
-    const data = (await res.json()) as any;
+    const data = res.body as any;
     expect(data.choices[0].message.content.trim().toUpperCase()).toBe("OK");
     expect(data.model).toBe(LIVE_MODEL);
   });
@@ -123,21 +118,17 @@ describe("Live API E2E (real upstream, real Neon, real Redis)", () => {
     expect(joined).toContain("debug");
     expect(compiled.shortTermItemsUsed).toBeGreaterThan(0);
 
-    const res = await app.request(
-      "/v1/chat/completions",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: "Bearer 1234" },
-        body: JSON.stringify({
-          model: LIVE_MODEL,
-          messages: compiled.messages,
-          max_tokens: 40,
-        }),
-      },
-      liveEnv()
-    );
+    const res = await request(createApp(liveEnv()))
+      .post("/v1/chat/completions")
+      .set("Content-Type", "application/json")
+      .set("Authorization", "Bearer 1234")
+      .send({
+        model: LIVE_MODEL,
+        messages: compiled.messages,
+        max_tokens: 40,
+      });
     expect(res.status).toBe(200);
-    const data = (await res.json()) as any;
+    const data = res.body as any;
     const answer = data.choices[0].message.content.toLowerCase();
     expect(answer).toContain("mahadi");
     await ctx.clearUser(uid);

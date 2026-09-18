@@ -1,4 +1,4 @@
-import { Redis } from "@upstash/redis/cloudflare";
+import { Redis } from "@upstash/redis";
 import { Ratelimit } from "@upstash/ratelimit";
 import type { Env } from "../env";
 

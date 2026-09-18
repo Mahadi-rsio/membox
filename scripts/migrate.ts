@@ -8,7 +8,7 @@ import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
 import { migrate } from "drizzle-orm/neon-http/migrator";
 
-config({ path: ".dev.vars" });
+config({ path: ".env" });
 
 const url = process.env.DATABASE_URL;
 if (!url) {

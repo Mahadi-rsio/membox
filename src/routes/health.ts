@@ -1,13 +1,13 @@
-import { Hono } from "hono";
-import type { HonoContext } from "../env";
+import { Router } from "express";
 import { getDb } from "../db";
 import { getRedis } from "../cache";
+import { getEnv } from "../http";
 import { sql } from "drizzle-orm";
 
-export const healthRouter = new Hono<HonoContext>();
+export const healthRouter = Router();
 
-healthRouter.get("/health", async (c) => {
-  const env = c.env;
+healthRouter.get("/health", async (req, res) => {
+  const env = getEnv(req);
   let dbReady = false;
   let redisReady = false;
 
@@ -38,10 +38,10 @@ healthRouter.get("/health", async (c) => {
   // Fail-open when Neon is not configured (proxy still works without memory)
   const ready = dbReady || !env.DATABASE_URL;
 
-  return c.json({
+  res.json({
     status: ready ? "ok" : "degraded",
     service: "remember-memory-gateway",
-    runtime: "cloudflare-worker",
+    runtime: "node",
     database: {
       provider: "neon",
       ready: dbReady,

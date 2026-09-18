@@ -1,17 +1,17 @@
-import { Hono } from "hono";
-import type { HonoContext } from "../env";
+import { Router } from "express";
+import { Readable } from "node:stream";
+import { getEnv } from "../http";
 import { warn } from "../log";
 
 /**
  * Chat router for the local web UI.
  *
- * The UI (built from web/ and served as Worker static assets) posts the latest
- * user message here. This endpoint forwards ONLY that single message to the
- * gateway's own /v1/chat/completions, which runs the memory pipeline and
- * compiles relevant context server-side. No conversation history is ever sent
- * to the upstream model.
+ * The UI (built from web/) posts the latest user message here. This endpoint
+ * forwards ONLY that single message to the gateway's own /v1/chat/completions,
+ * which runs the memory pipeline and compiles relevant context server-side. No
+ * conversation history is ever sent to the upstream model.
  */
-export const chatRouter = new Hono<HonoContext>();
+export const chatRouter = Router();
 
 type UIPart =
   | { type: "text"; text: string }
@@ -31,17 +31,16 @@ function encodeSSE(obj: unknown): Uint8Array {
 
 const DONE = new TextEncoder().encode("data: [DONE]\n\n");
 
-chatRouter.post("/api/chat", async (c) => {
-  let body: { message?: UIMessage; model?: string } = {};
-  try {
-    body = await c.req.json();
-  } catch {
-    return c.json({ error: "Invalid JSON body" }, 400);
+chatRouter.post("/api/chat", async (req, res) => {
+  const env = getEnv(req);
+  let body: { message?: UIMessage; model?: string } = req.body ?? {};
+  if (typeof body !== "object" || body === null) {
+    return res.status(400).json({ error: "Invalid JSON body" });
   }
 
   const latest = body.message;
   if (!latest || latest.role !== "user") {
-    return c.json({ error: "No user message provided" }, 400);
+    return res.status(400).json({ error: "No user message provided" });
   }
 
   const text = (latest.parts ?? [])
@@ -51,12 +50,12 @@ chatRouter.post("/api/chat", async (c) => {
     .trim();
 
   if (!text) {
-    return c.json({ error: "Empty message" }, 400);
+    return res.status(400).json({ error: "Empty message" });
   }
 
-  const gatewayUrl = (c.env.GATEWAY_URL || "http://localhost:8787").replace(/\/$/, "");
-  const apiKey = c.env.GATEWAY_API_KEY || "1234";
-  const model = body.model || c.env.LIVE_MODEL || "deepseek-v4-flash-0731";
+  const gatewayUrl = (env.GATEWAY_URL || "http://localhost:8787").replace(/\/$/, "");
+  const apiKey = env.GATEWAY_API_KEY || "1234";
+  const model = body.model || env.LIVE_MODEL || "deepseek-v4-flash-0731";
 
   // Forward ONLY the latest message to the gateway's chat completions route.
   const upstream = await fetch(`${gatewayUrl}/v1/chat/completions`, {
@@ -78,10 +77,9 @@ chatRouter.post("/api/chat", async (c) => {
       status: upstream.status,
       detail: detail.slice(0, 512),
     });
-    return c.json(
-      { error: "Upstream error", status: upstream.status, detail },
-      (upstream.status >= 400 && upstream.status < 600 ? upstream.status : 502) as any,
-    );
+    return res
+      .status(upstream.status >= 400 && upstream.status < 600 ? upstream.status : 502)
+      .json({ error: "Upstream error", status: upstream.status, detail });
   }
 
   // Transform the OpenAI SSE stream into the useChat UI stream protocol.
@@ -141,14 +139,13 @@ chatRouter.post("/api/chat", async (c) => {
     }
   })();
 
-  return new Response(transformStream.readable, {
-    status: 200,
-    headers: {
-      "content-type": "text/event-stream; charset=utf-8",
-      "cache-control": "no-cache, no-transform",
-      connection: "keep-alive",
-      "x-vercel-ai-ui-message-stream": "v1",
-      "x-accel-buffering": "no",
-    },
+  res.status(200);
+  res.set({
+    "content-type": "text/event-stream; charset=utf-8",
+    "cache-control": "no-cache, no-transform",
+    connection: "keep-alive",
+    "x-vercel-ai-ui-message-stream": "v1",
+    "x-accel-buffering": "no",
   });
+  Readable.fromWeb(transformStream.readable as any).pipe(res);
 });

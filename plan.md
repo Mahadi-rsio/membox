@@ -2,14 +2,14 @@
 
 ## Product Summary
 
-Build a production-oriented **AI Memory Gateway / Context Compression Proxy** in **TypeScript** on **Cloudflare Workers** (Hono + Neon + Upstash Redis). It sits transparently between OpenAI-compatible clients (OpenCode, Codex, etc.) and the real upstream AI API. The gateway optimizes what is sent **to** the main model and must never alter what comes **back**.
+Build a production-oriented **AI Memory Gateway / Context Compression Proxy** in **TypeScript** on **Node.js** (Express + Neon + Upstash Redis). It sits transparently between OpenAI-compatible clients (OpenCode, Codex, etc.) and the real upstream AI API. The gateway optimizes what is sent **to** the main model and must never alter what comes **back**.
 
 ## Stack
 
 | Layer | Technology |
 |-------|-----------|
-| Runtime | Cloudflare Workers |
-| Framework | Hono |
+| Runtime | Node.js |
+| Framework | Express |
 | Database | Neon (PostgreSQL) |
 | Cache | Upstash Redis (optional) |
 | ORM | Drizzle ORM |
@@ -30,12 +30,12 @@ Build a production-oriented **AI Memory Gateway / Context Compression Proxy** in
 
 ### Phase 0 — Project skeleton ✅
 
-- Hono app entry (`src/index.ts`) + env bindings via `wrangler.jsonc`.
-- Config via `.dev.vars`: upstream provider, memory AI, budget, auth, Neon URL.
+- Express app entry (`src/index.ts`) + env from `process.env` (via `.env`).
+- Config via `.env`: upstream provider, memory AI, budget, auth, Neon URL.
 - Health endpoint and basic app bootstrap.
-- `wrangler dev` runs locally with Neon over HTTP (no Redis required).
+- `bun run dev` runs locally with Neon over HTTP (no Redis required).
 
-**Exit criteria:** Hono app starts; env loads; `bun run dev` works.
+**Exit criteria:** Express app starts; env loads; `bun run dev` works.
 
 ### Phase 1 — Transparent OpenAI-compatible proxy ✅
 
@@ -104,7 +104,7 @@ Build a production-oriented **AI Memory Gateway / Context Compression Proxy** in
 - API auth hooks, rate-limit hooks (Upstash Ratelimit), secret redaction, no key logging, retention config.
 - Full test suite green; streaming + non-streaming response identity tests.
 - README: install, env, OpenCode/Codex/OpenAI client setup, providers, budget, streaming, troubleshooting, security.
-- `wrangler deploy` one-command production deploy.
+- `bun run start` boots the server for production (Node/Express).
 
 **Exit criteria:** production-oriented MVP checklist from PROMT § Final Implementation Requirement is met.
 
@@ -145,7 +145,7 @@ Build a production-oriented **AI Memory Gateway / Context Compression Proxy** in
 - [ ] Conversation isolation tests
 - [ ] Fail-open behavior tests (D1 error, Memory AI error)
 - [ ] Auth + rate limit tests
-- [ ] End-to-end smoke against `wrangler dev`
+- [ ] End-to-end smoke against `bun run dev`
 
 **Exit criteria:** all tests pass with `bun test`; coverage matches Python version's 158 tests.
 
@@ -197,7 +197,7 @@ Build a production-oriented **AI Memory Gateway / Context Compression Proxy** in
 
 ## Non-Goals
 
-- Docker / server deployment (Cloudflare Workers only).
+- Docker / server deployment (Node/Express).
 - Python runtime.
 - Requiring vector DB / Redis / embeddings.
 - Replacing the main model with the memory model.
@@ -220,5 +220,5 @@ Build a production-oriented **AI Memory Gateway / Context Compression Proxy** in
 - Upstream response identity (non-stream + stream).
 - Active context stays within configured token budget.
 - Memory failures fall back without failing the main request.
-- `wrangler dev` alone is enough to run locally.
-- `wrangler deploy` alone is enough to go to production.
+- `bun run dev` alone is enough to run locally.
+- `bun run start` alone is enough to go to production.

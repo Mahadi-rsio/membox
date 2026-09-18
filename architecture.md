@@ -8,8 +8,8 @@ The Memory Gateway is a **stateful context transformation layer**, not a chatbot
 
 | Component | Technology |
 |-----------|-----------|
-| Runtime | Cloudflare Workers |
-| Framework | Hono |
+| Runtime | Node.js |
+| Framework | Express |
 | Database | Neon (PostgreSQL) |
 | ORM | Drizzle ORM |
 | Cache | Upstash Redis (optional) |
@@ -21,7 +21,7 @@ The Memory Gateway is a **stateful context transformation layer**, not a chatbot
 OpenCode / Codex / AI Client
             │
             ▼
-      Memory Gateway (Cloudflare Workers / Hono)
+      Memory Gateway (Node.js / Express)
             │
      ┌──────┴─────────┐
      │                │
@@ -69,25 +69,28 @@ Preferred critical path — keep it lightweight:
 1. Receive OpenAI-compatible request
 2. Authenticate / isolate conversation (`X-Conversation-Id` header or fingerprint)
 3. Identify **delta** vs already-processed messages
-4. Persist raw messages to Neon archive (via `waitUntil` — non-blocking)
+4. Persist raw messages to Neon archive (fire-and-forget background task — non-blocking)
 5. Load current versioned canonical memory
 6. Deterministic memory processing
 7. Call Memory AI **only when necessary**
 8. Compile optimized context under token budget
 9. Forward to main upstream API
 10. Proxy response (stream or non-stream) **unchanged**
-11. Record assistant output for memory (post-complete / async via `waitUntil`)
+11. Record assistant output for memory (post-complete / async background task)
 
-Expensive work (embeddings, deep consolidation, archival indexing, memory repair, long-term summarization) uses Cloudflare's `waitUntil` and must not block token delivery.
+Expensive work (embeddings, deep consolidation, archival indexing, memory repair, long-term summarization) runs as background tasks and must not block token delivery.
 
 ## Component Map
 
 ```
 src/
-├── index.ts              # Hono app entry, middleware
-├── env.ts                # Env bindings interface (Neon, Upstash, vars)
+├── index.ts              # Express app entry (createApp factory + listener)
+├── env.ts                # Env interface + getEnv() from process.env
+├── http.ts               # Express Request/Response helpers
 ├── routes/
 │   ├── v1.ts             # OpenAI-compatible HTTP routes
+│   ├── chat.ts           # Built-in chat endpoint
+│   ├── memory.ts         # Memory management endpoints
 │   ├── health.ts         # Health check routes
 │   ├── auth.ts           # Gateway API key auth middleware
 │   └── rate-limit.ts     # Upstash Ratelimit middleware
@@ -123,8 +126,8 @@ src/
 └── db/                   # Drizzle ORM setup + Neon client
 
 drizzle/                  # Generated SQL migrations
+scripts/migrate.ts        # Apply migrations to Neon
 tests/                    # Bun test suite
-wrangler.jsonc            # Cloudflare Workers config
 ```
 
 ### API layer
@@ -295,13 +298,13 @@ When consolidating clusters, Memory AI (or the deterministic consolidator) retur
 | Memory AI down / bad JSON | Previous canonical memory + recent messages |
 | DB / retrieval error | Best-effort recent messages → still call main AI |
 | Upstash Redis miss | Skip cache; continue |
-| `waitUntil` task failure | Silently discarded; main response already sent |
+| Background task failure | Silently discarded; main response already sent |
 
 Main upstream should remain usable whenever possible.
 
 ## Streaming
 
-For `"stream": true`, proxy upstream SSE chunks directly via `Response` with streaming body. Do not buffer. Memory extraction runs after completion via `waitUntil`. Never delay tokens for background memory work.
+For `"stream": true`, proxy upstream SSE chunks directly via a streaming body. Do not buffer. Memory extraction runs after completion via a background task. Never delay tokens for background memory work.
 
 ## Security Boundaries
 
@@ -328,7 +331,7 @@ For `"stream": true`, proxy upstream SSE chunks directly via `Response` with str
 - Not a RAG-first embedding → top-k → LLM loop for every turn
 - Not a replacement for the main reasoning model
 - Not a client-visible memory chatbot API (transparency is the product)
-- Not a Docker/server app (Cloudflare Workers edge runtime)
+- Not a Docker/server app as the primary target (plain Node.js/Express service; Docker is optional)
 
 ## Design Invariant
 
