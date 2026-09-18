@@ -1,11 +1,35 @@
-# Memory Gateway
+<p align="center">
+  <img src="memory-core/public/1000013626-removebg-preview.png" alt="Remember" width="120" />
+</p>
 
-An OpenAI-compatible proxy that gives any client persistent memory. Clients only change
-their `base_url` — no SDKs, no MCP, no custom tools.
+<h1 align="center">Remember</h1>
 
-> **MCP support:** an MCP layer is also available for session-aware clients that want
-> explicit memory tools. See [`mcp.md`](./mcp.md) for architecture, tools, and the
-> programmatic `processMessage` API.
+<p align="center">
+  <strong>Persistent memory for AI agents.</strong><br />
+  An OpenAI-compatible memory gateway that stores what matters, retrieves what matters, and keeps conversations lightweight.
+</p>
+
+<p align="center">
+  <a href="https://github.com/Mahadi-rsio/Remember/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License" /></a>
+  <img src="https://img.shields.io/badge/runtime-Cloudflare%20Workers-orange" alt="Runtime" />
+  <img src="https://img.shields.io/badge/lang-TypeScript-blue" alt="Language" />
+  <img src="https://img.shields.io/badge/database-Neon%20(PostgreSQL)-green" alt="Database" />
+  <img src="https://img.shields.io/badge/cache-Upstash%20Redis-red" alt="Cache" />
+</p>
+
+<p align="center">
+  <a href="#quick-start">Quick Start</a> ·
+  <a href="#how-it-works">How it works</a> ·
+  <a href="#client-setup">Client setup</a> ·
+  <a href="#project-structure">Structure</a> ·
+  <a href="#contributing">Contributing</a> ·
+  <a href="#license">License</a>
+</p>
+
+---
+
+**Remember** is a transparent, OpenAI-compatible proxy that gives *any* client persistent memory.
+Clients only change their `base_url` — no SDKs, no MCP, no custom tools required.
 
 ```
 Client ──▶ Gateway ──▶ Main AI (answers)
@@ -13,38 +37,22 @@ Client ──▶ Gateway ──▶ Main AI (answers)
               └─▶ Neon (PostgreSQL): raw archive + compact memory + compiled context
 ```
 
-**How it works:** every request is archived, diffed against known history (delta
-detection), distilled into compact memory, and recompiled into a fixed-budget context
-before reaching the main AI. The main AI always generates the answer; responses are
-returned **unchanged** (streaming and non-streaming). The gateway optimizes what goes
-*in*, never what comes *out*.
+> **MCP support:** an MCP layer is also available for session-aware clients that want
+> explicit memory tools. See [`mcp.md`](./mcp.md) for architecture, tools, and the
+> programmatic `processMessage` API.
 
-**Stack:** TypeScript · Cloudflare Workers · Hono · Drizzle ORM · Neon (PostgreSQL) · Upstash Redis (optional) · React + Vite (built-in chat UI)
+## ✨ Features
 
----
+- **Intelligent memory** — stores useful signals instead of blindly keeping entire conversations
+- **Context-aware retrieval** — returns the memory relevant to the conversation happening now
+- **Continuous learning** — learns from every interaction as the relationship evolves
+- **Memory scoring** — evaluates relevance, confidence, importance, stability, and freshness
+- **Conflict handling** — supersedes outdated information instead of accumulating contradictions
+- **OpenAI-compatible** — drop-in for any client that speaks the OpenAI Chat Completions API
+- **BYOK** — bring your own model provider; Remember operates as the memory layer
+- **Streaming** — byte-identical SSE passthrough, memory extraction runs after the stream
 
-## Built-in chat UI
-
-The Worker also serves a React + shadcn chat UI (built from [`web/`](./web/)) and a
-`POST /api/chat` endpoint, all on the same port. No separate server needed.
-
-- The UI sends **only the latest user message** to `/api/chat` — never the conversation
-  history.
-- The endpoint forwards that single message to the gateway's `/v1/chat/completions`,
-  which runs the memory pipeline and compiles relevant context server-side.
-- Answers stream back into the UI.
-
-```bash
-cd web && bun install && bun run build     # build the UI into web/dist
-bun run dev                                # → http://localhost:8787 (UI + gateway)
-```
-
-Open **http://localhost:8787** to chat. The UI lives at `web/` and is bundled into
-`web/dist`, which `wrangler.jsonc` serves as static assets with SPA fallback.
-
-
-
-## Install & Run
+## 🚀 Quick Start
 
 ### Local development
 
@@ -58,10 +66,11 @@ bun run dev                # → wrangler dev → http://localhost:8787
 curl http://localhost:8787/health
 ```
 
-Create a Neon database if you do not have one yet:
+No Neon database yet? Create one:
 
-1. Sign up at https://neon.tech and create a project.
-2. Copy the pooled connection string (`postgresql://user:password@...neon.tech/dbname?sslmode=require`).
+1. Sign up at [neon.tech](https://neon.tech) and create a project.
+2. Copy the pooled connection string
+   (`postgresql://user:password@...neon.tech/dbname?sslmode=require`).
 3. Paste it as `DATABASE_URL` in `.dev.vars`.
 
 Run the test suite:
@@ -76,7 +85,7 @@ bun test
 # Set secrets (never committed to source)
 wrangler secret put UPSTREAM_API_KEY
 wrangler secret put DATABASE_URL
-wrangler secret put GATEWAY_API_KEY       # optional
+wrangler secret put GATEWAY_API_KEY           # optional
 wrangler secret put UPSTASH_REDIS_REST_URL    # optional
 wrangler secret put UPSTASH_REDIS_REST_TOKEN  # optional
 wrangler secret put MEMORY_AI_API_KEY         # optional
@@ -88,9 +97,96 @@ bun run db:migrate
 bun run deploy
 ```
 
----
+## 🧠 How it works
 
-## Environment
+Every request is:
+
+1. **Archived** to the raw history store.
+2. **Diffed** against known history (delta detection).
+3. **Distilled** into compact memory — durable facts as subject/predicate/value triples,
+   transient "right now" state into short-term context with a TTL.
+4. **Recompiled** into a fixed-budget context before reaching the main AI.
+
+The main AI always generates the answer; responses are returned **unchanged**
+(streaming and non-streaming). The gateway optimizes what goes *in*, never what comes *out*.
+
+### Built-in chat UI
+
+The Worker also serves a React + shadcn chat UI (built from [`web/`](./web/)) and a
+`POST /api/chat` endpoint, all on the same port.
+
+```bash
+cd web && bun install && bun run build     # build the UI into web/dist
+bun run dev                                # → http://localhost:8787 (UI + gateway)
+```
+
+Open **http://localhost:8787** to chat.
+
+### Landing page
+
+The open-source landing page lives in [`memory-core/`](./memory-core/), built with
+**Astro + React** (static output, no SSR):
+
+```bash
+cd memory-core
+bun install
+bun run dev        # → http://localhost:4321
+bun run build      # static site into dist/
+```
+
+## 🔌 Client setup
+
+Set `base_url` to the gateway. Nothing else changes.
+
+### OpenAI SDK (TypeScript)
+
+```typescript
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  baseURL: "http://localhost:8787/v1",
+  apiKey: "sk-anything",              // gateway key if GATEWAY_API_KEY is set
+  defaultHeaders: { "X-Conversation-Id": "my-thread-42" },
+});
+
+const r = await client.chat.completions.create({
+  model: "gpt-4.1",
+  messages: [{ role: "user", content: "My codename is Falcon-Nine." }],
+});
+```
+
+Next session, a bare question — *"What's my codename?"* — already knows. Memory is keyed
+per conversation via the `X-Conversation-Id` header. Without it, the gateway derives a
+stable id from the first message of the thread.
+
+### OpenAI SDK (Python)
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="http://localhost:8787/v1",
+    api_key="sk-anything",
+    default_headers={"X-Conversation-Id": "my-thread-42"},
+)
+r = client.chat.completions.create(
+    model="gpt-4.1",
+    messages=[{"role": "user", "content": "My codename is Falcon-Nine."}],
+)
+```
+
+### curl
+
+```bash
+curl -X POST http://localhost:8787/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "X-Conversation-Id: my-thread-42" \
+  -d '{"model":"gpt-4.1","messages":[{"role":"user","content":"hi"}]}'
+```
+
+Full endpoint reference: [api.md](api.md).
+
+## ⚙️ Environment
 
 Local secrets live in `.dev.vars` (never committed). Non-secret vars go in `wrangler.jsonc` under `"vars"`.
 
@@ -111,104 +207,18 @@ The upstream is any OpenAI-compatible endpoint — OpenAI, OpenRouter, vLLM, Oll
 (`http://localhost:11434/v1`), LM Studio, etc. Point `UPSTREAM_BASE_URL` + `UPSTREAM_API_KEY`
 at it. The Memory AI compressor (optional) is configured separately and never answers users.
 
----
+## 📚 Documentation
 
-## Client configuration
+| Doc | Purpose |
+|-----|---------|
+| [architecture.md](architecture.md) | Design invariants, phases, and module layout |
+| [api.md](api.md) | HTTP surface reference |
+| [PROMT.md](PROMT.md) | Product requirements & vision |
+| [plan.md](plan.md) | Roadmap and phase plan |
+| [todo.md](todo.md) | Progress tracking |
+| [FIX.md](FIX.md) | Memory-correctness fixes and rationale |
 
-Set `base_url` to the gateway. Nothing else changes.
-
-### OpenAI SDK (TypeScript)
-
-```typescript
-import OpenAI from "openai";
-
-const client = new OpenAI({
-  baseURL: "http://localhost:8787/v1",
-  apiKey: "sk-anything",   // gateway key if GATEWAY_API_KEY is set
-  defaultHeaders: {
-    "X-Conversation-Id": "my-thread-42",
-  },
-});
-
-const r = await client.chat.completions.create({
-  model: "gpt-4.1",
-  messages: [{ role: "user", content: "My codename is Falcon-Nine." }],
-});
-```
-
-Next session, a bare question — *"What's my codename?"* — already knows. Memory is keyed
-per conversation via the `X-Conversation-Id` header.
-
-Without the header, the gateway derives a stable id from the first message of the thread.
-
-### OpenAI SDK (Python)
-
-```python
-from openai import OpenAI
-
-client = OpenAI(
-    base_url="http://localhost:8787/v1",
-    api_key="sk-anything",
-    default_headers={"X-Conversation-Id": "my-thread-42"},
-)
-r = client.chat.completions.create(
-    model="gpt-4.1",
-    messages=[{"role": "user", "content": "My codename is Falcon-Nine."}],
-)
-```
-
-### OpenCode / Codex / any OpenAI-compatible tool
-
-```text
-base_url = http://localhost:8787/v1
-api_key  = <GATEWAY_API_KEY or anything>
-model    = <upstream model name>
-```
-
-### curl
-
-```bash
-curl -X POST http://localhost:8787/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -H "X-Conversation-Id: my-thread-42" \
-  -d '{"model":"gpt-4.1","messages":[{"role":"user","content":"hi"}]}'
-```
-
-Full endpoint reference: [api.md](api.md).
-
----
-
-## Context budget
-
-`CONTEXT_BUDGET` (tokens) caps the compiled context sent upstream. Selection is
-**score-based** — items are ranked by `value / token_cost` (importance, recency,
-relevance) — never naive head/tail truncation. Each update persists a versioned context
-snapshot, so state is auditable and repairable.
-
-Override per-request with the `X-Context-Budget` header.
-
-## Streaming
-
-`"stream": true` works transparently: SSE chunks are proxied to the client as they
-arrive (no full buffering); memory extraction runs after the stream completes via
-`waitUntil`. Responses are byte-identical to upstream.
-
----
-
-## Troubleshooting
-
-| Symptom | Check |
-|---------|-------|
-| `502` / connection refused on chat | `UPSTREAM_BASE_URL` reachable? `UPSTREAM_API_KEY` set? See Worker logs |
-| `model_not_found` | Model name must exist on the *upstream*, not the gateway — check `GET /v1/models` |
-| Memory not remembered | Reuse the same `X-Conversation-Id`; verify rows via `bun run db:studio` |
-| `413` on upload | Body exceeds request size limit |
-| Health fails on boot | `DATABASE_URL` set? Run `bun run db:migrate` |
-| Want a fresh slate | Drop/recreate the Neon DB or truncate tables via `bun run db:studio` |
-
----
-
-## Development
+## 🗂️ Project structure
 
 ```text
 src/
@@ -229,16 +239,45 @@ drizzle/                  # Generated SQL migrations
 scripts/migrate.ts        # Apply migrations to Neon
 tests/                    # bun test suite
 wrangler.jsonc            # Cloudflare Workers config
+web/                      # React + shadcn chat UI (bundled into the Worker)
+memory-core/              # Astro + React landing page (static site)
+```
+
+## 🛠️ Development
+
+```bash
+bun install
+bun run dev          # wrangler dev
+bun test             # test suite
+bun run typecheck    # tsc --noEmit
+bun run db:migrate   # apply migrations
+bun run deploy       # deploy to Cloudflare Workers
 ```
 
 Design docs: [architecture.md](architecture.md), [PROMT.md](PROMT.md), [api.md](api.md).
 
-## Security
+## 🔒 Security
 
-- Upstream API keys are Wrangler secrets only; never logged, never archived, never
-  echoed in errors.
+- Upstream API keys are Wrangler secrets only; never logged, never archived, never echoed in errors.
 - Optional `GATEWAY_API_KEY` enables bearer auth for clients.
-- Conversation data is isolated per conversation/user key; raw history and compact
-  memory live in Neon (PostgreSQL).
-- Rate limiting via Upstash Ratelimit guards against abuse; memory/DB/retrieval failures
-  degrade gracefully (the main AI is still called).
+- Conversation data is isolated per conversation/user key; raw history and compact memory live in Neon (PostgreSQL).
+- Rate limiting via Upstash Ratelimit guards against abuse; memory/DB/retrieval failures degrade gracefully (the main AI is still called).
+
+Found a vulnerability? Please read our [Security Policy](SECURITY.md).
+
+## 🤝 Contributing
+
+We welcome contributions of all kinds — bug reports, feature ideas, documentation, and code.
+
+Please read our [Contributing Guide](CONTRIBUTING.md) and our
+[Code of Conduct](CODE_OF_CONDUCT.md) before getting started.
+
+1. **Fork** the repository.
+2. **Create** a feature branch: `git checkout -b feat/my-feature`.
+3. **Commit** your changes: `git commit -m "feat: add my feature"`.
+4. **Push** to the branch: `git push origin feat/my-feature`.
+5. Open a **pull request**.
+
+## 📄 License
+
+This project is licensed under the [Apache License 2.0](LICENSE).

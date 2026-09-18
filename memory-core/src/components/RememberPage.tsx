@@ -29,7 +29,6 @@ function RememberPage() {
     <section id="top" className="relative flex min-h-[94vh] items-center overflow-hidden px-5 pb-20 pt-32">
       <div className="memory-grid absolute inset-0 opacity-20"/><HeroAura/>
       <div className="relative z-10 mx-auto w-full max-w-6xl text-center">
-        <div className="mb-8 inline-flex items-stretch overflow-hidden rounded-md border border-primary/25 bg-background/65 text-[9px] font-semibold uppercase tracking-[.16em] backdrop-blur-xl"><span className="flex items-center gap-2 border-r border-primary/20 bg-primary/10 px-3 py-2 text-primary"><span className="status-pulse h-1.5 w-1.5 rounded-full bg-primary"/>System online</span><span className="flex items-center gap-2 px-3 py-2 text-muted-foreground"><Sparkles size={11} className="text-gold"/>Open-source memory gateway</span></div>
         <h1 className="text-balance mx-auto max-w-5xl font-display text-5xl font-semibold leading-[.98] sm:text-7xl lg:text-[96px]">Give Your AI<br/><span className="hero-memory-text">a Memory.</span></h1>
         <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
           <a href="#developers" className="group inline-flex h-12 items-center justify-center gap-2 rounded-md bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-[0_0_32px_color-mix(in_oklab,var(--primary)_24%,transparent)] transition hover:-translate-y-0.5">Get Started <ArrowRight size={16} className="transition group-hover:translate-x-1"/></a>
