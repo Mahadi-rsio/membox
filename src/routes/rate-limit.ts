@@ -15,9 +15,9 @@ export async function checkRateLimit(req: Request, res: Response): Promise<Respo
     "unknown";
 
   try {
-    const { success, reset } = await limiter.limit(ip);
+    const { success, reset } = await limiter.check(ip);
     if (!success) {
-      const retryAfterSeconds = Math.max(1, Math.ceil((reset - Date.now()) / 1000));
+      const retryAfterSeconds = Math.max(1, Math.ceil(reset - Date.now() / 1000));
       return res.status(429).set("Retry-After", String(retryAfterSeconds)).json({
         error: {
           message: "Rate limit exceeded; please retry later",

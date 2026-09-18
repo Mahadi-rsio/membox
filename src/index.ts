@@ -43,8 +43,8 @@ export function createApp(env: Env = getEnv()): Express {
       runtime: "Node.js",
       framework: "Express",
       orm: "Drizzle",
-      database: "Neon (PostgreSQL)",
-      cache: "Upstash Redis",
+      database: "PostgreSQL (self-hosted)",
+      cache: "Redis (self-hosted)",
       version: "0.1.0",
       endpoints: {
         health: "/health",
@@ -94,6 +94,19 @@ if (isDirectRun) {
   const app = createApp();
   const port = Number(process.env.PORT || 8787);
   const host = process.env.HOST || "127.0.0.1";
+
+  // Apply database migrations on boot unless explicitly disabled. Safe to run
+  // every start (Drizzle skips already-applied migrations). In Docker,
+  // MIGRATION_DATABASE_URL points directly at Postgres so DDL avoids the
+  // PgBouncer transaction-pooling limitation.
+  if (String(process.env.AUTO_MIGRATE ?? "true").toLowerCase() !== "false") {
+    try {
+      const { runMigrations } = await import("../scripts/automigrate");
+      await runMigrations();
+    } catch (err: any) {
+      console.error("Auto-migration failed:", err?.message ?? String(err));
+    }
+  }
 
   app.listen(port, host, () => {
     console.log(`\n  Remember Memory Gateway running at http://${host}:${port}`);

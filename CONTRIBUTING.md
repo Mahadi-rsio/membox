@@ -58,7 +58,8 @@ cp .env.example .env
 ```
 
 Edit `.env` and set `UPSTREAM_API_KEY` (your main AI key) and `DATABASE_URL`
-(a [Neon](https://neon.tech) PostgreSQL connection string). Apply migrations:
+(a PostgreSQL connection string — any Postgres, including a local Docker
+instance, works). Apply migrations (or rely on auto-migrate on boot):
 
 ```bash
 bun run db:migrate
@@ -156,11 +157,11 @@ We use `bun test`. Run the full suite:
 bun test
 ```
 
-Some integration tests require live services (Neon database, Upstash Redis).
-Source the environment from `.env` before running those:
+Some integration tests require live services (a PostgreSQL database and an
+optional Redis). Source the environment from `.env` before running those:
 
 ```bash
-export $(grep -E '^(DATABASE_URL|UPSTASH_REDIS)' .env | xargs)
+export $(grep -E '^(DATABASE_URL|MIGRATION_DATABASE_URL|REDIS_URL)' .env | xargs)
 bun test
 ```
 

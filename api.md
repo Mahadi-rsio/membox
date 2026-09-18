@@ -162,11 +162,10 @@ Memory failures must not break the main completion path.
 
 ## Rate Limiting
 
-Optional Upstash Ratelimit enforced at the gateway edge. Configure:
+Optional Redis-backed sliding-window rate limit enforced at the gateway edge. Configure:
 
 ```bash
-export UPSTASH_REDIS_REST_URL=...
-export UPSTASH_REDIS_REST_TOKEN=...
+export REDIS_URL=redis://localhost:6379
 ```
 
 ## Client Configuration Examples

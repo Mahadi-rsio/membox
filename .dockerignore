@@ -1,0 +1,13 @@
+node_modules
+dist
+.git
+.env
+.dev.vars
+logs
+data
+*.log
+memory-gateway
+web
+memory-core
+benchmarks
+tests

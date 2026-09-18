@@ -14,7 +14,7 @@ describe("Express App Endpoints", () => {
     const json = res.body as any;
     expect(json.name).toBe("remember-memory-gateway");
     expect(json.runtime).toBe("Node.js");
-    expect(json.database).toContain("Neon");
+    expect(json.database).toContain("PostgreSQL");
   });
 
   it("responds on GET /health", async () => {
@@ -23,7 +23,7 @@ describe("Express App Endpoints", () => {
     const json = res.body as any;
     expect(json.status).toBe("ok");
     expect(json.service).toBe("remember-memory-gateway");
-    expect(json.database.provider).toBe("neon");
+    expect(json.database.provider).toBe("postgres");
   });
 
   it("enforces authentication: missing key returns 401", async () => {

@@ -23,18 +23,17 @@ function liveEnv() {
     UPSTREAM_BASE_URL: process.env.UPSTREAM_BASE_URL,
     UPSTREAM_API_KEY: process.env.UPSTREAM_API_KEY,
     DATABASE_URL: process.env.DATABASE_URL,
-    UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
-    UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
+    REDIS_URL: process.env.REDIS_URL,
     CONTEXT_BUDGET: "8000",
     MEMORY_AI_ENABLED: "false",
   };
 }
 
-describe("Live API E2E (real upstream, real Neon, real Redis)", () => {
+describe("Live API E2E (real upstream, real PostgreSQL, real Redis)", () => {
   it("requires live credentials to be sourced", () => {
     expect(process.env.UPSTREAM_API_KEY).toBeTruthy();
     expect(process.env.DATABASE_URL).toBeTruthy();
-    expect(process.env.UPSTASH_REDIS_REST_URL).toBeTruthy();
+    expect(process.env.REDIS_URL).toBeTruthy();
   });
 
   it("returns the real upstream model list via /v1/models", async () => {

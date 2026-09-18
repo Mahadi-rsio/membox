@@ -21,7 +21,7 @@ healthRouter.get("/health", async (req, res) => {
     }
   }
 
-  // Upstash Redis check (optional)
+  // Redis check (optional)
   const redis = getRedis(env);
   if (redis) {
     try {
@@ -35,7 +35,7 @@ healthRouter.get("/health", async (req, res) => {
   const isMemoryAiEnabled =
     String(env.MEMORY_AI_ENABLED).toLowerCase() === "true";
 
-  // Fail-open when Neon is not configured (proxy still works without memory)
+  // Fail-open when Postgres is not configured (proxy still works without memory)
   const ready = dbReady || !env.DATABASE_URL;
 
   res.json({
@@ -43,11 +43,11 @@ healthRouter.get("/health", async (req, res) => {
     service: "remember-memory-gateway",
     runtime: "node",
     database: {
-      provider: "neon",
+      provider: "postgres",
       ready: dbReady,
     },
     cache: {
-      provider: "upstash-redis",
+      provider: "redis",
       configured: Boolean(redis),
       ready: redisReady,
     },

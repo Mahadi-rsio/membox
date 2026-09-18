@@ -3,7 +3,7 @@
  * questions that require memory recall. Secrets stay in env — never printed.
  *
  * Run:
- *   export $(grep -E '^(DATABASE_URL|UPSTASH_REDIS|UPSTREAM)' .dev.vars | xargs)
+ *   export $(grep -E '^(DATABASE_URL|REDIS_URL|UPSTREAM)' .env | xargs)
  *   bun run scripts/live-preference-exam.ts
  */
 import app from "../src/index";
@@ -23,8 +23,8 @@ function liveEnv() {
     UPSTREAM_BASE_URL: process.env.UPSTREAM_BASE_URL,
     UPSTREAM_API_KEY: process.env.UPSTREAM_API_KEY,
     DATABASE_URL: process.env.DATABASE_URL,
-    UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
-    UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
+    REDIS_URL: process.env.REDIS_URL,
+    d
     CONTEXT_BUDGET: "8000",
     MEMORY_AI_ENABLED: "false",
   };
@@ -63,7 +63,7 @@ async function ask(question: string, compiledMessages: Array<Record<string, any>
 async function main() {
   for (const k of ["UPSTREAM_API_KEY", "DATABASE_URL", "UPSTREAM_BASE_URL"]) {
     if (!process.env[k]) {
-      console.error(`Missing ${k}. Source .dev.vars first.`);
+      console.error(`Missing ${k}. Source .env first.`);
       process.exit(1);
     }
   }

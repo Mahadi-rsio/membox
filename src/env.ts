@@ -1,11 +1,14 @@
 export interface Env {
-  // Neon / PostgreSQL
+  // Self-hosted PostgreSQL (optionally behind PgBouncer)
   DATABASE_URL?: string;
-  NEON_API_KEY?: string;
+  DATABASE_POOL_MAX?: string | number;
 
-  // Upstash Redis (Optional for caching / rate limiting)
-  UPSTASH_REDIS_REST_URL?: string;
-  UPSTASH_REDIS_REST_TOKEN?: string;
+  // Direct Postgres endpoint used for migrations (bypasses PgBouncer so DDL
+  // works). Falls back to DATABASE_URL when unset.
+  MIGRATION_DATABASE_URL?: string;
+
+  // Self-hosted Redis (Optional for caching / rate limiting)
+  REDIS_URL?: string;
 
   // Upstream AI Provider (OpenAI / OpenRouter / etc.)
   UPSTREAM_PROVIDER?: string;
@@ -48,9 +51,9 @@ export interface Env {
 export function getEnv(): Env {
   const env: Env = {
     DATABASE_URL: process.env.DATABASE_URL,
-    NEON_API_KEY: process.env.NEON_API_KEY,
-    UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
-    UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
+    DATABASE_POOL_MAX: process.env.DATABASE_POOL_MAX,
+    MIGRATION_DATABASE_URL: process.env.MIGRATION_DATABASE_URL,
+    REDIS_URL: process.env.REDIS_URL,
     UPSTREAM_PROVIDER: process.env.UPSTREAM_PROVIDER,
     UPSTREAM_BASE_URL: process.env.UPSTREAM_BASE_URL,
     UPSTREAM_API_KEY: process.env.UPSTREAM_API_KEY,

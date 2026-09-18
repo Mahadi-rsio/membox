@@ -2,7 +2,7 @@
 
 ## Product Summary
 
-Build a production-oriented **AI Memory Gateway / Context Compression Proxy** in **TypeScript** on **Node.js** (Express + Neon + Upstash Redis). It sits transparently between OpenAI-compatible clients (OpenCode, Codex, etc.) and the real upstream AI API. The gateway optimizes what is sent **to** the main model and must never alter what comes **back**.
+Build a production-oriented **AI Memory Gateway / Context Compression Proxy** in **TypeScript** on **Node.js** (Express + self-hosted PostgreSQL + Redis). It sits transparently between OpenAI-compatible clients (OpenCode, Codex, etc.) and the real upstream AI API. The gateway optimizes what is sent **to** the main model and must never alter what comes **back**.
 
 ## Stack
 
@@ -10,8 +10,8 @@ Build a production-oriented **AI Memory Gateway / Context Compression Proxy** in
 |-------|-----------|
 | Runtime | Node.js |
 | Framework | Express |
-| Database | Neon (PostgreSQL) |
-| Cache | Upstash Redis (optional) |
+| Database | PostgreSQL (self-hosted, optionally via PgBouncer) |
+| Cache | Redis (self-hosted, optional) |
 | ORM | Drizzle ORM |
 | Language | TypeScript |
 | Package manager | Bun |
@@ -31,9 +31,9 @@ Build a production-oriented **AI Memory Gateway / Context Compression Proxy** in
 ### Phase 0 — Project skeleton ✅
 
 - Express app entry (`src/index.ts`) + env from `process.env` (via `.env`).
-- Config via `.env`: upstream provider, memory AI, budget, auth, Neon URL.
+- Config via `.env`: upstream provider, memory AI, budget, auth, PostgreSQL URL.
 - Health endpoint and basic app bootstrap.
-- `bun run dev` runs locally with Neon over HTTP (no Redis required).
+- `bun run dev` runs locally with PostgreSQL (no Redis required).
 
 **Exit criteria:** Express app starts; env loads; `bun run dev` works.
 
@@ -94,14 +94,14 @@ Build a production-oriented **AI Memory Gateway / Context Compression Proxy** in
 
 - D1 FTS (SQLite-compatible) over raw history and memory.
 - `Retriever` interface ready for future backends.
-- Version-aware caches: request, extraction, compilation, retrieval (Upstash Redis optional).
+- Version-aware caches: request, extraction, compilation, retrieval (Redis optional).
 - Cache keys include conversation + context version + request hash; never serve stale over newer version.
 
 **Exit criteria:** FTS search works; caches are version-safe; MVP runs without Redis.
 
 ### Phase 7 — Hardening, security, docs ✅
 
-- API auth hooks, rate-limit hooks (Upstash Ratelimit), secret redaction, no key logging, retention config.
+- API auth hooks, rate-limit hooks (Redis sliding window), secret redaction, no key logging, retention config.
 - Full test suite green; streaming + non-streaming response identity tests.
 - README: install, env, OpenCode/Codex/OpenAI client setup, providers, budget, streaming, troubleshooting, security.
 - `bun run start` boots the server for production (Node/Express).
@@ -170,7 +170,7 @@ Build a production-oriented **AI Memory Gateway / Context Compression Proxy** in
 - [x] `src/memory/analyzer.ts` — `classifyCandidate` discards PREFERENCE candidates whose value matches the demonstrative/discourse-noun guard (defense in depth; also covers LLM-injected candidates).
 - [x] `src/context/selector.ts` — `extractKeywords` normalizes `favourite→favorite`, `colour→color` so "What is my favourite colour?" matches predicate `favorite_color` via existing LIKE retrieval.
 - [x] Tests — unit (`facts.test.ts`, `analyzer.test.ts`): 6 positive phrases → preference/user/correct predicate; 3 negative phrases → no fact; bucket `store`.
-- [x] Tests — `tests/preference-persistence.integration.test.ts` (live Neon): "I love red" → `memory_items` row (`user`, `favorite_color`, `red`, active); "What is my favourite color?" → compiled context contains "red"; "I love this response" → no new rows; "I love blue now" → blue active + `supersedesId`, red `superseded`; recall returns blue.
+- [x] Tests — `tests/preference-persistence.integration.test.ts` (live PostgreSQL): "I love red" → `memory_items` row (`user`, `favorite_color`, `red`, active); "What is my favourite color?" → compiled context contains "red"; "I love this response" → no new rows; "I love blue now" → blue active + `supersedesId`, red `superseded`; recall returns blue.
 - [x] `todo.md` — mark the corresponding correctness item(s) complete.
 - [x] Memory AI extraction prompt (`src/providers/memory-ai.ts`) updated to `promt.md` JSON-array contract.
 **Expected structured output (per req 2, following existing models):**
@@ -181,7 +181,7 @@ Build a production-oriented **AI Memory Gateway / Context Compression Proxy** in
 
 **Unchanged:** `contradiction.ts`, `state.ts`, `engine.ts`, DB schema, routes — supersede fires automatically via the existing same-`topicKey` contradiction path; `content` stays value-only per the existing preference convention.
 
-**Exit criteria:** `bun run typecheck` passes; `bun test` (unit + live-Neon integration with `.dev.vars` sourced) green; "I love red" persists and is recalled; "I love this response" is not stored; "I love blue now" supersedes red.
+**Exit criteria:** `bun run typecheck` passes; `bun test` (unit + live-PostgreSQL integration with `.dev.vars` sourced) green; "I love red" persists and is recalled; "I love this response" is not stored; "I love blue now" supersedes red.
 
 ### Phase 12 — Memory Consolidation Engine ✅
 
@@ -191,7 +191,7 @@ Build a production-oriented **AI Memory Gateway / Context Compression Proxy** in
 - [x] Consolidation types + deterministic `consolidator.ts` (tech_stack clustering, conflict-by-confidence, structured values)
 - [x] Memory AI `CONSOLIDATION_SYSTEM_PROMPT` + `consolidateCluster` with retry-once parse
 - [x] Apply consolidated rows; supersede source ids; fail-open; engine wiring after writes
-- [x] Unit + Neon integration tests
+- [x] Unit + PostgreSQL integration tests
 
 **Exit criteria:** 4+ stack preferences consolidate into `user.tech_stack` ARCHITECTURE; sources SUPERSEDED; compiled context still recalls language/database.
 

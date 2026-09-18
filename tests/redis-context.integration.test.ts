@@ -1,22 +1,16 @@
 import { describe, expect, it, beforeEach } from "bun:test";
-import { Redis } from "@upstash/redis/cloudflare";
+import Redis from "ioredis";
 import { createContextStoreFromRedis } from "../src/memory/context-store";
 import type { ShortTermContextStore } from "../src/memory/context-store";
 import { createTestDb } from "./helpers/db";
 import type { Database } from "../src/db";
 import { archiveRequest } from "../src/storage/archive";
 
-const hasRedis =
-  process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN;
+const hasRedis = !!process.env.REDIS_URL;
 
 function buildRedis(): ShortTermContextStore | null {
   if (!hasRedis) return null;
-  return createContextStoreFromRedis(
-    new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL!,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-    })
-  );
+  return createContextStoreFromRedis(new Redis(process.env.REDIS_URL!));
 }
 
 describe("Live Redis context store", () => {
@@ -29,7 +23,7 @@ describe("Live Redis context store", () => {
     store = buildRedis()!;
   });
 
-  it("requires live Upstash credentials to run", () => {
+  it("requires live Redis credentials to run", () => {
     expect(hasRedis).toBeTruthy();
   });
 

@@ -1,5 +1,5 @@
-import { neon } from "@neondatabase/serverless";
-import { drizzle } from "drizzle-orm/neon-http";
+import { Pool } from "pg";
+import { drizzle } from "drizzle-orm/node-postgres";
 import * as schema from "../../src/db/schema";
 import type { Database as AppDatabase } from "../../src/db";
 import { users } from "../../src/db/schema/users";
@@ -18,21 +18,21 @@ function tableName(table: typeof users): string {
 }
 
 /**
- * Creates a connection to the Neon test database (DATABASE_URL), wrapped in a
- * Drizzle instance compatible with the memory engine. Each call truncates all
- * tables first so every test starts isolated. Requires a live Neon test DB
- * with the production schema already applied (see scripts/migrate.ts).
+ * Creates a connection to the PostgreSQL test database (DATABASE_URL), wrapped
+ * in a Drizzle instance compatible with the memory engine. Each call truncates
+ * all tables first so every test starts isolated. Requires a live PostgreSQL
+ * test DB with the production schema already applied (see scripts/migrate.ts).
  */
 export async function createTestDb(): Promise<AppDatabase> {
   const url = process.env.DATABASE_URL;
   if (!url) {
     throw new Error(
-      "DATABASE_URL is required to run integration tests. Point it at a Neon test database."
+      "DATABASE_URL is required to run integration tests. Point it at a PostgreSQL test database."
     );
   }
 
-  const sql = neon(url);
-  const db = drizzle(sql, { schema }) as unknown as AppDatabase;
+  const pool = new Pool({ connectionString: url });
+  const db = drizzle(pool, { schema }) as unknown as AppDatabase;
 
   for (const table of TABLES) {
     await db.execute(
