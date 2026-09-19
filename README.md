@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="memory-core/public/1000013626-removebg-preview.png" alt="Remember" width="120" />
+  <img src="web/public/1000013626-removebg-preview.png" alt="Remember" width="120" />
 </p>
 
 <h1 align="center">Recall</h1>
@@ -133,23 +133,24 @@ The main AI always generates the answer; responses are returned **unchanged**
 
 ### Built-in chat UI
 
-The server also serves a React + shadcn chat UI (built from [`web/`](./web/)) and a
-`POST /api/chat` endpoint.
+The gateway serves a React + shadcn chat UI (built from [`chat/`](./chat/)) at
+the root path `/`, backed by the built-in `POST /api/chat` endpoint. Build the
+UI once, then hit the gateway directly:
 
 ```bash
-cd web && bun install && bun run build     # build the UI into web/dist
-bun run server                              # → http://localhost:8000 (UI + chat)
+cd chat && bun install && bun run build   # build the UI into chat/dist
+bun run dev                                # → http://localhost:8787 (UI + chat)
 ```
 
-Open **http://localhost:8000** to chat.
+Open **http://localhost:8787** to chat.
 
 ### Landing page
 
-The open-source landing page lives in [`memory-core/`](./memory-core/), built with
+The open-source landing page lives in [`web/`](./web/), built with
 **Astro + React** (static output, no SSR):
 
 ```bash
-cd memory-core
+cd web
 bun install
 bun run dev        # → http://localhost:4321
 bun run build      # static site into dist/
@@ -265,8 +266,8 @@ drizzle/                  # Generated SQL migrations
 scripts/migrate.ts        # Apply migrations to PostgreSQL (manual)
 scripts/automigrate.ts    # Auto-apply migrations on server boot (src/index.ts)
 tests/                    # bun test suite
-web/                      # React + shadcn chat UI + Express chat server
-memory-core/              # Astro + React landing page (static site)
+chat/                     # React + shadcn chat UI (served at the gateway root)
+web/                      # Astro + React landing page (static site)
 ```
 
 ## 🛠️ Development

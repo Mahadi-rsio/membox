@@ -8,6 +8,7 @@ data
 *.log
 memory-gateway
 web
-memory-core
+chat/node_modules
+chat/dist
 benchmarks
 tests

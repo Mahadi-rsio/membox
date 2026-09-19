@@ -75,8 +75,8 @@ bun run dev        # → Node/Express → http://localhost:8787
 
 ```text
 src/                # Gateway source (Express, Node.js)
-web/                # React + shadcn chat UI + Express chat server
-memory-core/        # Astro + React landing page (static site)
+chat/               # React + shadcn chat UI (served at the gateway root)
+web/                # Astro + React landing page (static site)
 tests/              # bun test suite
 drizzle/            # Generated SQL migrations
 ```
@@ -111,10 +111,10 @@ drizzle/            # Generated SQL migrations
 
    Then open a pull request from your fork on GitHub, targeting `main`.
 
-### Working in the landing page (`memory-core/`)
+### Working in the landing page (`web/`)
 
 ```bash
-cd memory-core
+cd web
 bun install
 bun run dev            # → http://localhost:4321
 bun run build          # static site into dist/
@@ -171,7 +171,7 @@ bun test
 
 - **TypeScript** — strict mode is enabled. Prefer explicit types and avoid `any`.
 - **Formatting** — [Prettier](https://prettier.io/) with the repo config.
-  Run `bun run format` in `web/` / `memory-core/` to auto-format.
+  Run `bun run format` in `chat/` / `web/` to auto-format.
 - **Naming** — descriptive names; follow the conventions of the file you're editing.
 - **No secrets** — never commit `.env`, API keys, or connection strings.
 - **Comments** — write comments that explain *why*, not *what*.

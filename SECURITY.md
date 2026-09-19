@@ -29,8 +29,8 @@ publicly.
 
 ## Scope
 
-This policy applies to the Remember gateway, its chat UI (`web/`), the landing
-page (`memory-core/`), and the documentation.
+This policy applies to the Remember gateway, its chat UI (`chat/`), the landing
+page (`web/`), and the documentation.
 
 Out of scope:
 

@@ -1,6 +1,8 @@
 import express from "express";
 import type { Express } from "express";
 import cors from "cors";
+import { resolve } from "node:path";
+import { existsSync } from "node:fs";
 import { getEnv, type Env } from "./env.js";
 import { configureLogLevel } from "./log.js";
 import { healthRouter } from "./routes/health.js";
@@ -22,6 +24,14 @@ export function createApp(env: Env = getEnv()): Express {
   app.use(cors());
   app.use(express.json());
 
+  // Serve the chat UI (built from chat/) at the root path. Falls back to the
+  // JSON root response if the static build is not present.
+  const chatDist = resolve(process.cwd(), "chat", "dist");
+  const hasChatBuild = existsSync(resolve(chatDist, "index.html"));
+  if (hasChatBuild) {
+    app.use(express.static(chatDist));
+  }
+
   // Health checks
   app.use("/", healthRouter);
   app.use("/v1", healthRouter);
@@ -35,8 +45,11 @@ export function createApp(env: Env = getEnv()): Express {
   // Web UI chat endpoint (latest-message only → gateway memory pipeline)
   app.use("/", chatRouter);
 
-  // Root route
+  // Root route — serve the chat UI when built, otherwise a JSON summary.
   app.get("/", (req, res) => {
+    if (hasChatBuild) {
+      return res.sendFile("index.html", { root: chatDist });
+    }
     res.json({
       name: "remember-memory-gateway",
       description: "OpenAI-compatible AI Memory Gateway",
