@@ -1,18 +1,25 @@
-<div align="center"><img src="./web/public/recall-github-cover-1mb.jpg" alt="Recall — Give your AI a memory" width="100%" />Recall
+<div align="center">
+  <img src="./web/public/recall-github-cover-1mb.jpg" alt="Recall — Give your AI a memory" width="100%" />
 
-Give your AI a memory.
+  <h1>Recall</h1>
 
-An OpenAI-compatible memory gateway for persistent, context-aware AI applications and agents.
+  <p>Give your AI a memory.</p>
 
-""TypeScript" (https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)" (https://www.typescriptlang.org/)
-""Node.js" (https://img.shields.io/badge/Node.js-339933?logo=node.js&logoColor=white)" (https://nodejs.org/)
-""PostgreSQL" (https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white)" (https://www.postgresql.org/)
-""Redis" (https://img.shields.io/badge/Redis-DC382D?logo=redis&logoColor=white)" (https://redis.io/)
-""License" (https://img.shields.io/badge/license-Apache--2.0-blue.svg)" (./LICENSE)
+  <p>An OpenAI-compatible memory gateway for persistent, context-aware AI applications and agents.</p>
 
-</div>---
+  <p>
+    <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white" alt="TypeScript" /></a>
+    <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-339933?logo=node.js&logoColor=white" alt="Node.js" /></a>
+    <a href="https://www.postgresql.org/"><img src="https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL" /></a>
+    <a href="https://redis.io/"><img src="https://img.shields.io/badge/Redis-DC382D?logo=redis&logoColor=white" alt="Redis" /></a>
+    <a href="./LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue.svg" alt="License" /></a>
+    <img src="https://img.shields.io/badge/status-experimental-orange" alt="Status" />
+  </p>
+</div>
 
-What is Recall?
+---
+
+## What is Recall?
 
 LLMs are powerful, but their memory is usually just a context window.
 
@@ -20,44 +27,32 @@ As conversations grow, applications have to keep sending more and more history. 
 
 Recall sits between your application and your AI provider and handles memory automatically.
 
-┌──────────────────┐
-│   Your App /     │
-│    AI Agent      │
-└────────┬─────────┘
-         │
-         │ OpenAI-compatible API
-         ▼
-┌──────────────────────────────┐
-│          Recall              │
-│      Memory Gateway          │
-│                              │
-│  • Archive conversations     │
-│  • Extract useful facts      │
-│  • Score memories            │
-│  • Resolve conflicts         │
-│  • Retrieve relevant memory  │
-│  • Compile bounded context   │
-└───────────┬──────────────────┘
-            │
-       ┌────┴─────┐
-       ▼          ▼
- ┌──────────┐  ┌──────────┐
- │PostgreSQL│  │  Redis   │
- └──────────┘  └──────────┘
-            │
-            ▼
-┌──────────────────────────────┐
-│     Your Main AI Provider    │
-│                              │
-│ OpenAI / OpenRouter / vLLM   │
-│ Ollama / LM Studio / etc.    │
-└──────────────────────────────┘
+```mermaid
+flowchart TD
+    A["🤖 Your App / AI Agent"] -->|OpenAI-compatible API| B
+
+    subgraph B["⚡ Recall — Memory Gateway"]
+        direction TB
+        B1[Archive Conversations]
+        B2[Extract Useful Facts]
+        B3[Score Memories]
+        B4[Resolve Conflicts]
+        B5[Retrieve Relevant Memory]
+        B6[Compile Bounded Context]
+        B1 --> B2 --> B3 --> B4 --> B5 --> B6
+    end
+
+    B --> C[(PostgreSQL)]
+    B --> D[(Redis)]
+    B -->|Enriched request| E["☁️ Your AI Provider\nOpenAI · OpenRouter · Ollama · vLLM"]
+    E -->|Normal response| A
+```
 
 Your application keeps using an OpenAI-compatible API. Recall handles the memory layer in the middle.
 
 ---
 
-Why Recall?
+## Why Recall?
 
 Without a memory layer, an application often has to choose between:
 
@@ -69,7 +64,7 @@ Without a memory layer, an application often has to choose between:
 
 Recall moves that responsibility into a dedicated gateway.
 
-The goal
+### The goal
 
 Keep the model's context small without throwing away useful information.
 
@@ -77,15 +72,36 @@ Instead of treating every previous message as equally important, Recall can extr
 
 ---
 
-How It Works
+## How It Works
 
 Recall follows a memory lifecycle rather than simply dumping old messages into a vector database.
 
-1. Archive
+```mermaid
+sequenceDiagram
+    participant App as Your App / Agent
+    participant GW as Recall Gateway
+    participant DB as PostgreSQL
+    participant Cache as Redis
+    participant LLM as Upstream LLM
+
+    App->>GW: POST /v1/chat/completions
+    GW->>DB: Archive incoming messages
+    GW->>GW: Detect memory-worthy facts
+    GW->>GW: Score & resolve conflicts
+    GW->>DB: Upsert memories
+    GW->>Cache: Cache hot memories
+    GW->>DB: Retrieve relevant memories
+    GW->>GW: Compile compact context
+    GW->>LLM: Forward enriched request
+    LLM-->>GW: Stream / full response
+    GW-->>App: Return response (unchanged format)
+```
+
+### 1. Archive
 
 Incoming conversations are stored so the gateway can understand the history behind future interactions.
 
-2. Detect
+### 2. Detect
 
 New messages are analyzed for potentially useful information such as:
 
@@ -97,7 +113,7 @@ New messages are analyzed for potentially useful information such as:
 - Persistent instructions
 - Relevant conversational state
 
-3. Score
+### 3. Score
 
 Memories can be evaluated using signals such as:
 
@@ -109,145 +125,115 @@ Memories can be evaluated using signals such as:
 
 This helps distinguish persistent information from temporary conversation noise.
 
-4. Resolve Conflicts
+### 4. Resolve Conflicts
 
 When newer information contradicts older information, Recall can supersede the outdated memory instead of blindly returning both.
 
-For example:
+```mermaid
+flowchart LR
+    A["🗂️ Old Memory\nproject.database = Neon\nconfidence: 0.90"] -->|Conflict detected| C{"Recall\nResolver"}
+    B["💬 New Message\n'I switched to PostgreSQL'"] --> C
+    C -->|Supersede| D["✅ Active Memory\nproject.database = PostgreSQL\nconfidence: 0.95"]
+    C -->|Archive| E["🗃️ Archived\nproject.database = Neon\nsuperseded_at: now()"]
+```
 
-Old:
-project.database = Neon
+The old value is not simply forgotten — the memory system keeps the history while determining which information should currently be trusted.
 
-New:
-I switched the project database to PostgreSQL.
-
-Result:
-project.database = PostgreSQL
-
-The old value is not simply forgotten. The memory system keeps the history while determining which information should currently be trusted.
-
-5. Retrieve
+### 5. Retrieve
 
 When a new request arrives, Recall searches the available memory for information relevant to that request.
 
-6. Compile
+### 6. Compile
 
 Relevant memories are converted into a compact context that can be provided to the upstream model.
 
-7. Forward
+### 7. Forward
 
-The request is sent to the user's selected AI provider.
-
-The application still receives the model's normal response.
+The request is sent to the user's selected AI provider. The application still receives the model's normal response.
 
 ---
 
-Key Features
+## Key Features
 
-Persistent Memory
-
-Store useful information across conversations instead of relying entirely on the model's context window.
-
-Context-Aware Retrieval
-
-Retrieve memories based on the current conversation instead of blindly replaying the entire history.
-
-Memory Scoring
-
-Use multiple signals to determine how useful and reliable a memory is.
-
-Conflict Resolution
-
-New information can supersede outdated information.
-
-Conversation Isolation
-
-Use "X-Conversation-Id" to keep memories separated between conversations.
-
-X-Conversation-Id: my-project-chat
-
-OpenAI-Compatible
-
-Use Recall as a drop-in gateway with OpenAI-compatible clients.
-
-You generally only need to change the API base URL.
-
-BYOK
-
-Bring your own API key and use the AI provider you already use.
-
-Recall does not require you to move your application to a proprietary model provider.
-
-Streaming
-
-Supports streaming responses for compatible upstream providers.
-
-Self-Hosted
-
-Run Recall yourself with PostgreSQL, Redis, Docker, or a normal Node.js environment.
-
-Provider Agnostic
-
-Recall is designed to work with OpenAI-compatible providers rather than locking the memory layer to one model vendor.
+| Feature | Description |
+|---|---|
+| 🧠 **Persistent Memory** | Store useful information across conversations, beyond the context window |
+| 🔍 **Context-Aware Retrieval** | Retrieve memories based on the current conversation, not the full history |
+| 📊 **Memory Scoring** | Multi-signal scoring — confidence, importance, stability, freshness |
+| ⚔️ **Conflict Resolution** | New information supersedes outdated facts automatically |
+| 🔒 **Conversation Isolation** | Separate memory spaces per `X-Conversation-Id` |
+| 🔌 **OpenAI-Compatible** | Drop-in gateway — only change the base URL |
+| 🔑 **BYOK** | Bring your own API key, use any provider you already use |
+| ⚡ **Streaming** | Supports streaming responses from compatible upstream providers |
+| 🏠 **Self-Hosted** | Deploy with PostgreSQL, Redis, Docker, or plain Node.js |
+| 🌐 **Provider Agnostic** | Works with any OpenAI-compatible provider |
 
 ---
 
-Quick Start
+## Quick Start
 
-Requirements
+### Requirements
 
 - Node.js or Bun
 - PostgreSQL
 - Redis
 - An OpenAI-compatible upstream API
 
-1. Clone
+### 1. Clone
 
+```bash
 git clone https://github.com/Mahadi-rsio/recall.git
 cd recall
+```
 
-2. Install dependencies
+### 2. Install dependencies
 
-Using Bun:
-
+```bash
 bun install
-
-Or using npm:
-
+# or
 npm install
+```
 
-3. Configure environment variables
+### 3. Configure environment variables
 
-Create a ".env" file:
+Create a `.env` file:
 
+```env
 UPSTREAM_API_KEY=your_api_key
+UPSTREAM_BASE_URL=https://api.openai.com/v1
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/recall
 REDIS_URL=redis://localhost:6379
+PORT=8787
+```
 
-4. Run database migrations
+### 4. Run database migrations
 
+```bash
 bun run db:migrate
+```
 
-5. Start Recall
+### 5. Start Recall
 
+```bash
 bun run dev
+```
 
-The gateway will be available at:
+The gateway will be available at `http://localhost:8787`
 
-http://localhost:8787
-
-Health check:
-
-GET /health
+```bash
+# Health check
+curl http://localhost:8787/health
+```
 
 ---
 
-Using Recall
+## Using Recall
 
-Recall exposes an OpenAI-compatible API.
+Recall exposes an OpenAI-compatible API. For most clients, you only need to change the base URL.
 
-For example, with the OpenAI JavaScript SDK:
+### JavaScript / TypeScript
 
+```typescript
 import OpenAI from "openai";
 
 const client = new OpenAI({
@@ -256,291 +242,325 @@ const client = new OpenAI({
 });
 
 const response = await client.chat.completions.create({
-  model: "your-model",
+  model: "gpt-4o",
   messages: [
-    {
-      role: "user",
-      content: "My name is Mahadi.",
-    },
+    { role: "user", content: "My name is Mahadi and I prefer TypeScript." },
   ],
+  // Pass a stable ID to isolate this conversation's memory
+  // @ts-ignore — custom header
+  headers: { "X-Conversation-Id": "user-mahadi-session-1" },
 });
 
 console.log(response.choices[0].message.content);
+```
 
-For a follow-up conversation, provide the same conversation ID:
+### Python
 
-X-Conversation-Id: my-conversation
+```python
+from openai import OpenAI
 
-This allows Recall to associate requests with the same memory space.
+client = OpenAI(
+    api_key="your-api-key",
+    base_url="http://localhost:8787/v1",
+    default_headers={"X-Conversation-Id": "user-mahadi-session-1"},
+)
 
----
+response = client.chat.completions.create(
+    model="gpt-4o",
+    messages=[{"role": "user", "content": "What stack do I use?"}],
+)
+print(response.choices[0].message.content)
+```
 
-Curl
+### cURL
 
+```bash
+# First message — Recall stores the fact
 curl http://localhost:8787/v1/chat/completions \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "X-Conversation-Id: demo" \
   -d '{
-    "model": "your-model",
-    "messages": [
-      {
-        "role": "user",
-        "content": "My favorite color is green."
-      }
-    ]
+    "model": "gpt-4o",
+    "messages": [{"role": "user", "content": "My favorite color is green."}]
   }'
 
-Later:
-
+# Later — Recall retrieves the stored memory
 curl http://localhost:8787/v1/chat/completions \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "X-Conversation-Id: demo" \
   -d '{
-    "model": "your-model",
-    "messages": [
-      {
-        "role": "user",
-        "content": "What is my favorite color?"
-      }
-    ]
+    "model": "gpt-4o",
+    "messages": [{"role": "user", "content": "What is my favorite color?"}]
   }'
-
-Recall can retrieve the relevant memory and provide it to the upstream model.
-
----
-
-Supported Providers
-
-Recall works with OpenAI-compatible APIs, including setups based on:
-
-- OpenAI
-- OpenRouter
-- vLLM
-- Ollama
-- LM Studio
-- Other OpenAI-compatible servers
-
-The important part is compatibility with the expected API interface, not the provider's brand.
+```
 
 ---
 
-Architecture
+## Supported Providers
 
-                    ┌─────────────────┐
-                    │   AI Application │
-                    │   / AI Agent    │
-                    └────────┬────────┘
-                             │
-                             ▼
-                  ┌─────────────────────┐
-                  │       Recall        │
-                  │   Memory Gateway    │
-                  ├─────────────────────┤
-                  │                     │
-                  │  Conversation       │
-                  │  Memory Extraction  │
-                  │  Memory Scoring     │
-                  │  Conflict Resolution│
-                  │  Retrieval          │
-                  │  Context Compiler   │
-                  │                     │
-                  └───────┬───────┬─────┘
-                          │       │
-                 ┌────────▼─┐   ┌─▼───────┐
-                 │PostgreSQL│   │  Redis  │
-                 └──────────┘   └─────────┘
-                          │
-                          ▼
-                 ┌─────────────────┐
-                 │ Upstream LLM    │
-                 │                 │
-                 │ OpenAI-compatible
-                 │ Provider        │
-                 └─────────────────┘
+Recall works with any OpenAI-compatible API:
+
+| Provider | Notes |
+|---|---|
+| **OpenAI** | GPT-4o, GPT-4, GPT-3.5, etc. |
+| **OpenRouter** | Access 100+ models via one key |
+| **Ollama** | Local models (Llama, Mistral, Gemma…) |
+| **LM Studio** | Local OpenAI-compatible server |
+| **vLLM** | High-throughput inference server |
+| **Any other** | As long as it's OpenAI-compatible |
+
+Set `UPSTREAM_BASE_URL` to your provider's API endpoint.
 
 ---
 
-Memory Model
+## Architecture
+
+```mermaid
+graph TB
+    subgraph Client["Client Layer"]
+        APP["🤖 AI Application / Agent"]
+    end
+
+    subgraph Gateway["Recall Gateway (Node.js / Bun)"]
+        ROUTER[Request Router]
+        ARCH[Conversation Archiver]
+        EXTRACT[Memory Extractor]
+        SCORE[Memory Scorer]
+        RESOLVE[Conflict Resolver]
+        RETRIEVE[Memory Retriever]
+        COMPILE[Context Compiler]
+        FORWARD[Request Forwarder]
+
+        ROUTER --> ARCH --> EXTRACT --> SCORE --> RESOLVE
+        RESOLVE --> RETRIEVE --> COMPILE --> FORWARD
+    end
+
+    subgraph Storage["Storage Layer"]
+        PG[(PostgreSQL\nMemories · Conversations)]
+        RD[(Redis\nHot Cache · Sessions)]
+    end
+
+    subgraph Upstream["Upstream LLM"]
+        LLM["☁️ OpenAI · OpenRouter\nOllama · vLLM · etc."]
+    end
+
+    APP -->|POST /v1/chat/completions| ROUTER
+    ARCH <-->|Read / Write| PG
+    SCORE <-->|Cache| RD
+    RETRIEVE <-->|Query| PG
+    FORWARD -->|Enriched request| LLM
+    LLM -->|Response| APP
+```
+
+---
+
+## Memory Model
 
 Recall is designed around the idea that not every piece of conversation deserves permanent memory.
 
-A memory can contain information such as:
+```mermaid
+erDiagram
+    CONVERSATION {
+        uuid id PK
+        string conversation_id
+        timestamp created_at
+    }
+    MESSAGE {
+        uuid id PK
+        uuid conversation_id FK
+        string role
+        text content
+        timestamp created_at
+    }
+    MEMORY {
+        uuid id PK
+        uuid conversation_id FK
+        string subject
+        string key
+        text value
+        float confidence
+        float importance
+        float stability
+        float freshness
+        boolean active
+        uuid superseded_by FK
+        timestamp created_at
+        timestamp updated_at
+    }
 
-Subject: project
-Key: database
-Value: PostgreSQL
+    CONVERSATION ||--o{ MESSAGE : contains
+    CONVERSATION ||--o{ MEMORY : produces
+    MEMORY ||--o| MEMORY : supersedes
+```
 
-Confidence: 0.88
-Importance: 0.65
-Stability: 0.55
-Freshness: 1.00
+A memory record tracks not just the value, but signals that help Recall decide how much to trust it:
 
-These signals can be used to determine which memories should be retained, retrieved, or superseded.
+```
+subject:    project
+key:        database
+value:      PostgreSQL
 
-The exact memory representation can evolve as the project develops.
+confidence: 0.88   ← how certain is this fact?
+importance: 0.65   ← how much does it matter?
+stability:  0.55   ← how likely is it to change?
+freshness:  1.00   ← how recently was it confirmed?
+```
 
 ---
 
-Conversation IDs
+## Conversation IDs
 
-Conversation isolation is important when multiple conversations use the same gateway.
+Conversation isolation is important when multiple users or sessions share the same gateway.
 
-Use:
+```mermaid
+flowchart LR
+    U1["User A"] -->|X-Conversation-Id: user-a| GW[Recall Gateway]
+    U2["User B"] -->|X-Conversation-Id: user-b| GW
+    U3["Agent"] -->|X-Conversation-Id: agent-task-42| GW
 
-X-Conversation-Id: user-123-project-a
+    GW --> MA[("🔵 Memory Space A")]
+    GW --> MB[("🟢 Memory Space B")]
+    GW --> MC[("🟠 Memory Space C")]
+```
 
-Requests with the same conversation ID share the corresponding memory context.
-
-Different IDs create separate memory spaces.
-
-If no conversation ID is supplied, the gateway may fall back to its own anonymous conversation handling.
-
-For production applications, explicitly providing a stable conversation ID is recommended.
+Requests with the same conversation ID share the corresponding memory context. Different IDs create completely separate memory spaces. For production applications, always provide a stable, explicit conversation ID.
 
 ---
 
-Docker
+## Docker
 
-Recall can be deployed together with its supporting services.
+```mermaid
+graph LR
+    subgraph compose["docker compose up -d --build"]
+        GW["Recall Gateway\n:8787"]
+        PG["PostgreSQL\n:5432"]
+        PGB["PgBouncer\n:6432"]
+        RD["Redis\n:6379"]
+    end
 
-Example architecture:
+    GW --> PGB --> PG
+    GW --> RD
+```
 
-Docker Compose
-│
-├── Recall Gateway
-├── PostgreSQL
-├── PgBouncer
-└── Redis
-
-Build and start:
-
+```bash
+# Build and start all services
 docker compose up -d --build
 
-Check running services:
-
+# Check status
 docker compose ps
 
----
+# View logs
+docker compose logs -f recall
+```
 
-GHCR
+### GHCR
 
-A container image is available through GitHub Container Registry:
-
-ghcr.io/Mahadi-rsio/recall-gateway:latest
-
-Example:
-
+```bash
 docker pull ghcr.io/Mahadi-rsio/recall-gateway:latest
+```
 
 ---
 
-Environment Variables
+## Environment Variables
 
-Variable| Description
-"UPSTREAM_API_KEY"| API key for the upstream provider
-"DATABASE_URL"| PostgreSQL connection string
-"REDIS_URL"| Redis connection string
-"PORT"| Gateway port
-"UPSTREAM_BASE_URL"| OpenAI-compatible upstream API URL
-
-Additional configuration may be available depending on the deployment environment.
-
----
-
-Web Interface
-
-Recall includes a built-in web interface for testing the gateway and interacting with the memory system.
-
-The project also contains a landing page designed to explain the architecture and demonstrate the memory flow visually.
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `UPSTREAM_API_KEY` | ✅ | — | API key for the upstream provider |
+| `UPSTREAM_BASE_URL` | ✅ | — | Base URL of the OpenAI-compatible upstream |
+| `DATABASE_URL` | ✅ | — | PostgreSQL connection string |
+| `REDIS_URL` | ✅ | — | Redis connection string |
+| `PORT` | ❌ | `8787` | Port the gateway listens on |
 
 ---
 
-Project Structure
+## Project Structure
 
+```
 recall/
 ├── src/
-│   ├── memory/
-│   ├── routes/
-│   ├── services/
-│   └── ...
+│   ├── memory/          # Memory extraction, scoring, retrieval
+│   ├── routes/          # API route handlers
+│   ├── services/        # Core business logic
+│   └── index.ts         # Entry point
 ├── web/
-│   ├── public/
-│   └── ...
-├── migrations/
+│   ├── public/          # Landing page assets
+│   └── index.html       # Web UI
+├── migrations/          # Database migrations (Drizzle)
 ├── docker-compose.yml
 ├── Dockerfile
 ├── package.json
 ├── README.md
 └── LICENSE
+```
 
 ---
 
-Development
+## Development
 
-Install dependencies:
-
+```bash
+# Install dependencies
 bun install
 
-Start development server:
-
+# Start dev server (with hot reload)
 bun run dev
 
-Run migrations:
-
+# Run migrations
 bun run db:migrate
 
-Build:
-
+# Build for production
 bun run build
 
-Run tests:
-
+# Run tests
 bun test
+```
 
 ---
 
-Roadmap
+## Roadmap
 
-Recall is still evolving.
-
-Planned and experimental areas include:
-
-- [ ] Improved semantic retrieval
-- [ ] Better memory ranking
-- [ ] Memory consolidation
-- [ ] More robust temporal reasoning
-- [ ] Improved contradiction detection
-- [ ] Better short-term vs long-term memory separation
-- [ ] Embedding-based retrieval
-- [ ] Memory observability and debugging
-- [ ] More provider integrations
-- [ ] Larger benchmark suites
-- [ ] Agent-specific memory workflows
-- [ ] More deployment options
-
-The roadmap is intentionally flexible. Memory systems are one of those wonderfully inconvenient areas where the obvious architecture usually breaks once real conversations arrive.
+```mermaid
+gantt
+    title Recall Development Roadmap
+    dateFormat  YYYY-MM
+    section Retrieval
+        Embedding-based retrieval       :active, 2025-07, 3M
+        Improved semantic ranking       :2025-09, 2M
+    section Memory Quality
+        Memory consolidation            :2025-08, 2M
+        Temporal reasoning              :2025-09, 3M
+        Contradiction detection v2      :2025-10, 2M
+    section Architecture
+        Short vs long-term separation   :2025-08, 3M
+        Agent-specific workflows        :2025-11, 2M
+    section Observability
+        Memory debugging UI             :2025-09, 2M
+        Benchmark suites                :2025-10, 2M
+    section Deployment
+        More provider integrations      :2025-07, 4M
+        More deployment options         :2025-11, 2M
+```
 
 ---
 
-Contributing
+## Contributing
 
 Recall is open source and contributions are welcome.
 
 You can contribute by:
 
 - Fixing bugs
-- Improving retrieval
+- Improving retrieval quality
 - Improving memory extraction
 - Adding tests
 - Improving documentation
 - Adding provider compatibility
-- Improving deployment
+- Improving deployment options
 - Building developer tooling
 - Proposing architectural improvements
 
-Development workflow
+### Workflow
 
 1. Fork the repository
 2. Create a feature branch
@@ -548,11 +568,11 @@ Development workflow
 4. Add or update tests
 5. Open a pull request
 
-Please keep changes focused and explain architectural changes clearly.
+Please keep changes focused and explain architectural decisions clearly.
 
 ---
 
-Security
+## Security
 
 Do not expose:
 
@@ -562,109 +582,26 @@ Do not expose:
 - Production secrets
 - Private conversation data
 
-Use environment variables or your deployment platform's secret-management system.
+Use environment variables or your deployment platform's secret management system.
 
-If you discover a security vulnerability, please avoid publicly exposing sensitive details before the issue can be investigated.
+If you discover a security vulnerability, please avoid publicly disclosing sensitive details before the issue has been investigated. Open a private security advisory on GitHub instead.
 
 ---
 
-License
+## License
 
 Recall is licensed under the Apache License 2.0.
 
-See "LICENSE" (./LICENSE) for the full license text.
+See [LICENSE](./LICENSE) for the full license text.
 
 ---
 
-<div align="center">Recall
+<div align="center">
+
+**Recall**
 
 Give your AI a memory.
 
 Built for developers building AI applications that need more than a context window.
 
-</div>ntext |
-| `GATEWAY_API_KEY` | unset | Optional bearer auth on the gateway |
-| `REDIS_URL` | unset | Optional self-hosted Redis for cache + rate limiting |
-| `PORT` | `8787` | HTTP port the gateway listens on |
-| `HOST` | `127.0.0.1` | Bind address for the gateway |
-
-### Providers
-
-The upstream is any OpenAI-compatible endpoint — OpenAI, OpenRouter, vLLM, Ollama
-(`http://localhost:11434/v1`), LM Studio, etc. Point `UPSTREAM_BASE_URL` + `UPSTREAM_API_KEY`
-at it. The Memory AI compressor (optional) is configured separately and never answers users.
-
-## 📚 Documentation
-
-| Doc | Purpose |
-|-----|---------|
-| [architecture.md](architecture.md) | Design invariants, phases, and module layout |
-| [api.md](api.md) | HTTP surface reference |
-| [PROMT.md](PROMT.md) | Product requirements & vision |
-| [plan.md](plan.md) | Roadmap and phase plan |
-| [todo.md](todo.md) | Progress tracking |
-| [FIX.md](FIX.md) | Memory-correctness fixes and rationale |
-
-## 🗂️ Project structure
-
-```text
-src/
-├── index.ts              # Express app entry (createApp factory + listener)
-├── env.ts                # Env interface + getEnv() from process.env
-├── http.ts               # Express Request/Response helpers
-├── routes/               # v1.ts, chat.ts, memory.ts, health.ts, auth.ts, rate-limit.ts
-├── providers/            # OpenAI-compatible adapter, Memory AI adapter
-├── memory/               # delta, engine, extractor, facts, correction, revocation,
-│                         # interrogative, low-info, scorer, contradiction, state, isolation
-├── context/              # compiler, assembler, selector, tokens
-├── storage/              # archive.ts (raw message writer)
-├── retrieval/            # Retriever interface + PostgreSQL backend
-├── cache/                # version-aware cache (self-hosted Redis optional)
-├── models/               # Zod schemas + TypeScript types
-└── db/                   # Drizzle ORM + pg client (self-hosted PostgreSQL)
-
-drizzle/                  # Generated SQL migrations
-scripts/migrate.ts        # Apply migrations to PostgreSQL (manual)
-scripts/automigrate.ts    # Auto-apply migrations on server boot (src/index.ts)
-tests/                    # bun test suite
-chat/                     # React + shadcn chat UI (served at the gateway root)
-web/                      # Astro + React landing page (static site)
-```
-
-## 🛠️ Development
-
-```bash
-bun install
-bun run dev          # Node/Express via tsx
-bun test             # test suite
-bun run typecheck    # tsc --noEmit
-bun run db:migrate   # apply migrations
-```
-
-Design docs: [architecture.md](architecture.md), [PROMT.md](PROMT.md), [api.md](api.md).
-
-## 🔒 Security
-
-- Upstream API keys are environment variables only; never logged, never archived, never echoed in errors.
-- Optional `GATEWAY_API_KEY` enables bearer auth for clients.
-- Conversation data is isolated per conversation/user key; raw history and compact memory live in PostgreSQL.
-- Rate limiting via self-hosted Redis guards against abuse; memory/DB/retrieval failures degrade gracefully (the main AI is still called).
-
-Found a vulnerability? Please read our [Security Policy](SECURITY.md).
-
-## 🤝 Contributing
-
-We welcome contributions of all kinds — bug reports, feature ideas, documentation, and code.
-
-Please read our [Contributing Guide](CONTRIBUTING.md) and our
-[Code of Conduct](CODE_OF_CONDUCT.md) before getting started.
-
-1. **Fork** the repository.
-2. **Create** a feature branch: `git checkout -b feat/my-feature`.
-3. **Commit** your changes: `git commit -m "feat: add my feature"`.
-4. **Push** to the branch: `git push origin feat/my-feature`.
-5. Open a **pull request**.
-
-## 📄 License
-
-This project is licensed under the [Apache License 2.0](LICENSE).
+</div>
