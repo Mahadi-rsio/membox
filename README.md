@@ -117,6 +117,56 @@ curl http://localhost:8787/health
 - Migrations run DDL and go **directly to Postgres** via `MIGRATION_DATABASE_URL`.
 - Set `AUTO_MIGRATE=false` to disable auto-migration on boot.
 
+#### Troubleshooting: `Auto-migration failed: ... CREATE SCHEMA`
+
+If the gateway boots but logs this:
+
+```text
+Applying database migrations ...
+Auto-migration failed: Failed query: CREATE SCHEMA IF NOT EXISTS "drizzle"
+params:
+```
+
+the message is misleading — Drizzle reports only the failing SQL, not the
+underlying cause. The query never ran because the gateway could not open a TCP
+connection to Postgres and the pool timed out (10s).
+
+Containers on the same Compose network always resolve each other by service name
+(`postgres`, `pgbouncer`, `redis`). **Name resolution is not reachability** — the
+packets still have to pass the host firewall. Diagnose with:
+
+```bash
+docker exec remember-gateway nc -zv postgres 5432
+docker exec remember-gateway nc -zv redis 6379
+```
+
+If those time out, check for a **mixed iptables backend** on the host. Modern
+Docker manages its bridge with `iptables-nft`, but stale `iptables-legacy` rules
+whose `FORWARD` policy is `DROP` and which only match `docker0` will silently
+drop traffic on the Compose bridge:
+
+```bash
+sudo iptables-legacy -L FORWARD -n -v    # policy DROP, rules mention docker0 only
+```
+
+Fix by allowing forwarding in the stale legacy table (persist the rule with your
+distro's firewall tooling if you need it across reboots):
+
+```bash
+sudo iptables-legacy -P FORWARD ACCEPT
+```
+
+Then recreate the stack and confirm:
+
+```bash
+docker compose up -d --force-recreate
+docker logs remember-gateway             # expect "Migrations applied."
+```
+
+A fresh VPS with a standard Docker install normally needs none of this. To keep
+it that way, install Docker from the official repo and avoid mixing
+`iptables-legacy` and `iptables-nft` packages on the same host.
+
 ### Docker image (GHCR)
 
 A prebuilt gateway image is published to the GitHub Container Registry on every
