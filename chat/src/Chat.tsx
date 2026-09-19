@@ -87,7 +87,7 @@ function deriveSessionTitle(messages: UIMessage[]): string {
 function formatChatExport(session: ChatSession, modelName?: string): string {
   const dateStr = new Date(session.createdAt).toLocaleString();
   const header = [
-    `# ${session.title || "Remember Chat"}`,
+    `# ${session.title || "Recall Chat"}`,
     `Date: ${dateStr}`,
     modelName ? `Model: ${modelName}` : "",
     "",
@@ -340,7 +340,7 @@ export default function Chat() {
               </span>
               <div className="min-w-0">
                 <h1 className="truncate text-sm font-semibold leading-tight sm:text-base">
-                  Remember
+                  Recall
                 </h1>
                 <p className="hidden truncate text-[11px] text-muted-foreground sm:block">
                   Memory-backed chat · latest message only

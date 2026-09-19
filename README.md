@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Mahadi-rsio/Remember/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License" /></a>
+  <a href="https://github.com/Mahadi-rsio/recall/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License" /></a>
   <img src="https://img.shields.io/badge/runtime-Node.js%20%2F%20Express-green" alt="Runtime" />
   <img src="https://img.shields.io/badge/lang-TypeScript-blue" alt="Language" />
   <img src="https://img.shields.io/badge/database-PostgreSQL-green" alt="Database" />
@@ -28,7 +28,7 @@
 
 ---
 
-**Remember** is a transparent, OpenAI-compatible proxy that gives *any* client persistent memory.
+**Recall** is a transparent, OpenAI-compatible proxy that gives *any* client persistent memory.
 Clients only change their `base_url` — no SDKs, no MCP, no custom tools required.
 
 ```
@@ -49,7 +49,7 @@ Client ──▶ Gateway ──▶ Main AI (answers)
 - **Memory scoring** — evaluates relevance, confidence, importance, stability, and freshness
 - **Conflict handling** — supersedes outdated information instead of accumulating contradictions
 - **OpenAI-compatible** — drop-in for any client that speaks the OpenAI Chat Completions API
-- **BYOK** — bring your own model provider; Remember operates as the memory layer
+- **BYOK** — bring your own model provider; Recall operates as the memory layer
 - **Streaming** — byte-identical SSE passthrough, memory extraction runs after the stream
 
 ## 🚀 Quick Start
@@ -116,6 +116,21 @@ curl http://localhost:8787/health
 - The gateway talks to Postgres through **PgBouncer** for runtime traffic.
 - Migrations run DDL and go **directly to Postgres** via `MIGRATION_DATABASE_URL`.
 - Set `AUTO_MIGRATE=false` to disable auto-migration on boot.
+
+### Docker image (GHCR)
+
+A prebuilt gateway image is published to the GitHub Container Registry on every
+push to `main` and on version tags:
+
+```bash
+docker pull ghcr.io/Mahadi-rsio/recall-gateway:latest
+
+docker run -d --name recall-gateway -p 8787:8787 \
+  -e UPSTREAM_API_KEY=... \
+  -e DATABASE_URL=... \
+  -e REDIS_URL=... \
+  ghcr.io/Mahadi-rsio/recall-gateway:latest
+```
 
 
 ## 🧠 How it works

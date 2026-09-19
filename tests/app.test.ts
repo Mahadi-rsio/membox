@@ -8,11 +8,17 @@ const BASE_ENV = {
 };
 
 describe("Express App Endpoints", () => {
-  it("responds on GET / with service metadata", async () => {
+  it("responds on GET / with service metadata (or chat UI when built)", async () => {
     const res = await request(createApp(BASE_ENV)).get("/");
     expect(res.status).toBe(200);
+    const ctype = String(res.headers["content-type"] ?? "");
+    if (ctype.includes("text/html")) {
+      // A built chat UI (chat/dist) is present, so the root serves the app.
+      expect(res.text).toContain("<!doctype html>");
+      return;
+    }
     const json = res.body as any;
-    expect(json.name).toBe("remember-memory-gateway");
+    expect(json.name).toBe("recall-gateway");
     expect(json.runtime).toBe("Node.js");
     expect(json.database).toContain("PostgreSQL");
   });
@@ -22,7 +28,7 @@ describe("Express App Endpoints", () => {
     expect(res.status).toBe(200);
     const json = res.body as any;
     expect(json.status).toBe("ok");
-    expect(json.service).toBe("remember-memory-gateway");
+    expect(json.service).toBe("recall-gateway");
     expect(json.database.provider).toBe("postgres");
   });
 

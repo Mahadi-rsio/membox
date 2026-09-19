@@ -1,6 +1,6 @@
 # Security Policy
 
-We take the security of Remember seriously. Thank you for helping us keep the
+We take the security of Recall seriously. Thank you for helping us keep the
 project and its users safe.
 
 ## Reporting a vulnerability
@@ -29,7 +29,7 @@ publicly.
 
 ## Scope
 
-This policy applies to the Remember gateway, its chat UI (`chat/`), the landing
+This policy applies to the Recall gateway, its chat UI (`chat/`), the landing
 page (`web/`), and the documentation.
 
 Out of scope:

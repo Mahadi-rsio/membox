@@ -40,7 +40,7 @@ healthRouter.get("/health", async (req, res) => {
 
   res.json({
     status: ready ? "ok" : "degraded",
-    service: "remember-memory-gateway",
+    service: "recall-gateway",
     runtime: "node",
     database: {
       provider: "postgres",

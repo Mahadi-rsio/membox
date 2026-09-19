@@ -51,7 +51,7 @@ export function createApp(env: Env = getEnv()): Express {
       return res.sendFile("index.html", { root: chatDist });
     }
     res.json({
-      name: "remember-memory-gateway",
+      name: "recall-gateway",
       description: "OpenAI-compatible AI Memory Gateway",
       runtime: "Node.js",
       framework: "Express",

@@ -1,6 +1,6 @@
-# Contributing to Remember
+# Contributing to Recall
 
-Thanks for your interest in contributing! Remember is an open-source memory
+Thanks for your interest in contributing! Recall is an open-source memory
 gateway for AI agents, and we welcome contributions from everyone — whether
 you're fixing a typo, reporting a bug, or building a whole new feature.
 
@@ -33,14 +33,14 @@ expect everyone to follow it in all project spaces and interactions.
 2. **Clone** your fork:
 
    ```bash
-   git clone https://github.com/<your-username>/Remember.git
-   cd Remember
+   git clone https://github.com/<your-username>/recall.git
+   cd recall
    ```
 
 3. **Add the upstream remote**:
 
    ```bash
-   git remote add upstream https://github.com/Mahadi-rsio/Remember.git
+   git remote add upstream https://github.com/Mahadi-rsio/recall.git
    ```
 
 4. **Install dependencies** (we use [Bun](https://bun.sh)):
@@ -191,4 +191,4 @@ constraints, so maintainers and contributors can discuss the best approach.
 
 ---
 
-Thank you for helping make Remember better! 🚀
+Thank you for helping make Recall better! 🚀

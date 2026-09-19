@@ -1,5 +1,5 @@
 {
-  "name": "remember-memory-gateway",
+  "name": "recall-gateway",
   "version": "0.1.0",
   "description": "AI Memory Gateway - Express (Node.js) with Neon, Drizzle ORM, and Upstash Redis",
   "type": "module",
